@@ -1,13 +1,12 @@
-# NuvTools - Application Insights
+# Application Insights
 
-Bicep module for provisioning Application Insights (workspace-based) with configurable sampling and retention following the NuvTools naming convention (`{prefix}-{workloadName}-appi-{environment}`). Requires an existing Log Analytics workspace for linking.
+Bicep module for provisioning Application Insights (workspace-based) with configurable sampling and retention following a configurable naming convention (`{workloadName}-appi-{environment}`). Requires an existing Log Analytics workspace for linking.
 
 ## Naming Convention
 
-The resource name is automatically generated based on the `prefix`, `workloadName`, and `environment` parameters:
+The resource name is automatically generated based on the `workloadName` and `environment` parameters:
 
-- With prefix: `{prefix}-{workloadName}-appi-{environment}` (e.g., `nvt-myapp-appi-dev`)
-- Without prefix: `{workloadName}-appi-{environment}` (e.g., `myapp-appi-dev`)
+- Pattern: `{workloadName}-appi-{environment}` (e.g., `myapp-appi-dev`)
 - Override: use the `name` parameter to define a fully custom name, ignoring the automatic convention.
 
 ## Usage
@@ -19,7 +18,6 @@ module appInsights 'modules/app-insights/main.bicep' = {
   params: {
     workloadName: 'myapp'
     environment: 'dev'
-    prefix: 'nvt'
     logAnalyticsWorkspaceId: logAnalytics.outputs.id
     retentionInDays: 90
     samplingPercentage: 100
@@ -34,9 +32,8 @@ module appInsights 'modules/app-insights/main.bicep' = {
 | `name` | `string` | `''` | Full resource name. If provided, overrides the automatic naming convention. |
 | `workloadName` | `string` | *(required)* | Workload name (2-20 characters). Used to compose the resource name. |
 | `environment` | `string` | *(required)* | Deployment environment. Accepts any string (e.g., `dev`, `uat`, `hml`, `staging`, `prod`). |
-| `prefix` | `string` | `''` | Resource prefix. Used to compose the automatic name (e.g., `hd`, `nvt`, `corp`). |
 | `location` | `string` | `'brazilsouth'` | Azure region where the resource will be created. |
-| `tags` | `object` | `{ ManagedBy: 'NuvTools', Environment: environment }` | Tags to be applied to the resource. |
+| `tags` | `object` | `{ ManagedBy: 'Bicep', Environment: environment }` | Tags to be applied to the resource. |
 | `applicationType` | `string` | `'web'` | Type of application monitored by Application Insights. |
 | `logAnalyticsWorkspaceId` | `string` | *(required)* | ID of the Log Analytics workspace to which Application Insights will be linked. |
 | `disableIpMasking` | `bool` | `false` | Disables IP address masking in telemetry data. |

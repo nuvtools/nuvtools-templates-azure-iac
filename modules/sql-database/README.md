@@ -1,13 +1,12 @@
-# NuvTools - SQL Database
+# SQL Database
 
-Bicep Module for provisioning an Azure SQL Database with serverless SKU support, short-term backup policy, conditional Long-Term Retention (LTR), and diagnostics, following the NuvTools naming convention (`{prefix}-{workloadName}-sqldb-{environment}`).
+Bicep Module for provisioning an Azure SQL Database with serverless SKU support, short-term backup policy, conditional Long-Term Retention (LTR), and diagnostics, following a configurable naming convention (`{workloadName}-sqldb-{environment}`).
 
 ## Naming Convention
 
-The resource name is automatically generated based on the `prefix`, `workloadName`, and `environment` parameters:
+The resource name is automatically generated based on the `workloadName` and `environment` parameters:
 
-- With prefix: `{prefix}-{workloadName}-sqldb-{environment}` (e.g., `nvt-myapp-sqldb-dev`)
-- Without prefix: `{workloadName}-sqldb-{environment}` (e.g., `myapp-sqldb-dev`)
+- Pattern: `{workloadName}-sqldb-{environment}` (e.g., `myapp-sqldb-dev`)
 - Override: use the `name` parameter to define a fully custom name, bypassing the automatic naming convention.
 
 ## Usage
@@ -19,9 +18,8 @@ module sqlDatabase 'modules/sql-database/main.bicep' = {
   params: {
     workloadName: 'myapp'
     environment: 'dev'
-    prefix: 'nvt'
     location: 'brazilsouth'
-    sqlServerName: 'nvt-myapp-sql-dev'
+    sqlServerName: 'myapp-sql-dev'
     skuName: 'GP_S_Gen5_1'
     skuTier: 'GeneralPurpose'
     maxSizeBytes: 34359738368
@@ -40,9 +38,8 @@ module sqlDatabase 'modules/sql-database/main.bicep' = {
 | `name` | `string` | `''` | Full resource name. If provided, the automatic naming convention is bypassed. |
 | `workloadName` | `string` | *(required)* | Workload name. Used to compose the resource name. Min: 2, Max: 20 characters. |
 | `environment` | `string` | *(required)* | Deployment environment. Accepts any string (e.g., `dev`, `uat`, `hml`, `staging`, `prod`). |
-| `prefix` | `string` | `''` | Resource prefix. Used to compose the automatic name (e.g., `hd`, `nvt`, `corp`). |
 | `location` | `string` | `'brazilsouth'` | Azure region where the resource will be created. |
-| `tags` | `object` | `{ ManagedBy: 'NuvTools', Environment: environment }` | Tags to be applied to the resource. |
+| `tags` | `object` | `{ ManagedBy: 'Bicep', Environment: environment }` | Tags to be applied to the resource. |
 | `sqlServerName` | `string` | *(required)* | Name of the existing SQL Server where the database will be created. |
 | `skuName` | `string` | `'GP_S_Gen5_1'` | Database SKU name. The default `GP_S_Gen5_1` corresponds to serverless mode. |
 | `skuTier` | `string` | `'GeneralPurpose'` | Database SKU tier. |

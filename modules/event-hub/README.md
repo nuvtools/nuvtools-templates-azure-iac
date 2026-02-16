@@ -1,18 +1,17 @@
-# NuvTools - Event Hub
+# Event Hub
 
-Bicep Module for provisioning an Azure Event Hub namespace with individual Event Hubs, consumer groups, auto-inflate, zone redundancy, and conditional diagnostics, following the NuvTools naming convention (`{prefix}-{workloadName}-evhns-{environment}`). When `prefix` is not provided, the generated name will be `{workloadName}-evhns-{environment}`. The `name` parameter allows you to completely override the automatic name.
+Bicep Module for provisioning an Azure Event Hub namespace with individual Event Hubs, consumer groups, auto-inflate, zone redundancy, and conditional diagnostics, following a configurable naming convention (`{workloadName}-evhns-{environment}`). The `name` parameter allows you to completely override the automatic name.
 
 ## Usage
 
 ```bicep
-// Usage with prefix (generates: nvt-myapp-evhns-dev)
+// Generates: myapp-evhns-dev
 module eventHub 'modules/event-hub/main.bicep' = {
   name: 'deploy-event-hub'
   scope: resourceGroup('my-rg')
   params: {
     workloadName: 'myapp'
     environment: 'dev'
-    prefix: 'nvt'
     location: 'brazilsouth'
     skuName: 'Standard'
     skuCapacity: 2
@@ -39,17 +38,6 @@ module eventHub 'modules/event-hub/main.bicep' = {
   }
 }
 
-// Usage with a fully custom name
-module eventHub2 'modules/event-hub/main.bicep' = {
-  name: 'deploy-event-hub-2'
-  scope: resourceGroup('my-rg')
-  params: {
-    name: 'meu-eventhub-customizado'
-    workloadName: 'myapp'
-    environment: 'dev'
-    location: 'brazilsouth'
-  }
-}
 ```
 
 ## Parameters
@@ -59,9 +47,8 @@ module eventHub2 'modules/event-hub/main.bicep' = {
 | `name` | `string` | `''` | Full resource name. If provided, the automatic naming convention is bypassed. |
 | `workloadName` | `string` | *(required)* | Workload name (2-20 characters). Used to compose the resource name when `name` is not provided. |
 | `environment` | `string` | *(required)* | Deployment environment. Accepts any string (e.g., `dev`, `uat`, `hml`, `staging`, `prod`). |
-| `prefix` | `string` | `''` | Resource prefix. Used to compose the automatic name (e.g., `hd`, `nvt`, `corp`). When empty, the name is generated without a prefix. |
 | `location` | `string` | `'brazilsouth'` | Azure region where the resource will be created. |
-| `tags` | `object` | `{ ManagedBy: 'NuvTools', Environment: environment }` | Tags to be applied to the resource. |
+| `tags` | `object` | `{ ManagedBy: 'Bicep', Environment: environment }` | Tags to be applied to the resource. |
 | `skuName` | `string` | `'Standard'` | Event Hub namespace SKU. Allowed values: `Basic`, `Standard`, `Premium`. |
 | `skuCapacity` | `int` | `1` | Capacity (throughput units) of the Event Hub namespace. |
 | `isAutoInflateEnabled` | `bool` | `false` | Enables auto-inflate to automatically scale throughput units. |

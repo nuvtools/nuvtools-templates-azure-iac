@@ -1,23 +1,22 @@
-# NuvTools - Policy Assignment
+# Policy Assignment
 
-Bicep Module for creating an Azure Policy assignment at the subscription scope, with support for conditional managed identity (required for policies with DeployIfNotExists or Modify effect), customizable parameters, and configurable enforcement mode, following the NuvTools naming convention (`{prefix}-{workloadName}-policy-{environment}`). When `prefix` is not provided, the generated name will be `{workloadName}-policy-{environment}`. The `name` parameter allows you to completely override the automatic name.
+Bicep Module for creating an Azure Policy assignment at the subscription scope, with support for conditional managed identity (required for policies with DeployIfNotExists or Modify effect), customizable parameters, and configurable enforcement mode, following a configurable naming convention (`{workloadName}-policy-{environment}`). The `name` parameter allows you to completely override the automatic name.
 
 ## Usage
 
 ```bicep
 targetScope = 'subscription'
 
-// Usage with prefix (generates: nvt-security-policy-prod)
+// Generates: security-policy-prod
 module policyAssignment 'modules/policy/main.bicep' = {
   name: 'deploy-policy-assignment'
   params: {
     workloadName: 'security'
     environment: 'prod'
-    prefix: 'nvt'
     location: 'brazilsouth'
     policyDefinitionId: '/providers/Microsoft.Authorization/policyDefinitions/00000000-0000-0000-0000-000000000000'
-    displayName: 'Exigir tags em recursos'
-    policyDescription: 'Politica que exige tags obrigatorias em todos os recursos.'
+    displayName: 'Require tags on resources'
+    policyDescription: 'Policy that requires mandatory tags on all resources.'
     enforcementMode: 'Default'
     identity: true
     parameters: {
@@ -32,12 +31,12 @@ module policyAssignment 'modules/policy/main.bicep' = {
 module policyAssignment2 'modules/policy/main.bicep' = {
   name: 'deploy-policy-assignment-2'
   params: {
-    name: 'minha-policy-customizada'
+    name: 'my-custom-policy'
     workloadName: 'security'
     environment: 'prod'
     location: 'brazilsouth'
     policyDefinitionId: '/providers/Microsoft.Authorization/policyDefinitions/00000000-0000-0000-0000-000000000000'
-    displayName: 'Politica customizada'
+    displayName: 'Custom policy'
   }
 }
 ```
@@ -49,7 +48,6 @@ module policyAssignment2 'modules/policy/main.bicep' = {
 | `name` | `string` | `''` | Full resource name. If provided, overrides the automatic naming convention. |
 | `workloadName` | `string` | *(required)* | Workload name. Used to compose the policy assignment name when `name` is not provided. |
 | `environment` | `string` | *(required)* | Deployment environment. Accepts any string (e.g.: `dev`, `uat`, `hml`, `staging`, `prod`). |
-| `prefix` | `string` | `''` | Resource prefix. Used to compose the automatic name (e.g.: `hd`, `nvt`, `corp`). When empty, the name is generated without a prefix. |
 | `location` | `string` | `'brazilsouth'` | Azure region. Required when managed identity is enabled. |
 | `tags` | `object` | `{}` | Tags to be applied to the resource. |
 | `policyDefinitionId` | `string` | *(required)* | ID of the policy definition to be assigned. |

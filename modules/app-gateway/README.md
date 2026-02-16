@@ -1,17 +1,17 @@
-# NuvTools - Application Gateway
+# Application Gateway
 
-Bicep module for provisioning an Application Gateway with WAF, managed identity, SSL certificates, and diagnostics following the NuvTools naming convention (`{prefix}-{workloadName}-agw-{environment}`). Automatically creates a public IP (`{prefix}-{workloadName}-pip-agw-{environment}`), a user-assigned managed identity for Key Vault access (`{prefix}-{workloadName}-id-agw-{environment}`), and a conditional WAF policy (`{prefix}-{workloadName}-waf-{environment}`).
+Bicep module for provisioning an Application Gateway with WAF, managed identity, SSL certificates, and diagnostics following a configurable naming convention (`{workloadName}-agw-{environment}`). Automatically creates a public IP (`{workloadName}-pip-agw-{environment}`), a user-assigned managed identity for Key Vault access (`{workloadName}-id-agw-{environment}`), and a conditional WAF policy (`{workloadName}-waf-{environment}`).
 
 ## Naming Convention
 
-Resource names are automatically generated based on the `prefix`, `workloadName`, and `environment` parameters:
+Resource names are automatically generated based on the `workloadName` and `environment` parameters:
 
-| Resource | With prefix | Without prefix |
-|---|---|---|
-| Application Gateway | `{prefix}-{workloadName}-agw-{environment}` | `{workloadName}-agw-{environment}` |
-| Public IP | `{prefix}-{workloadName}-pip-agw-{environment}` | `{workloadName}-pip-agw-{environment}` |
-| Managed Identity | `{prefix}-{workloadName}-id-agw-{environment}` | `{workloadName}-id-agw-{environment}` |
-| WAF Policy | `{prefix}-{workloadName}-waf-{environment}` | `{workloadName}-waf-{environment}` |
+| Resource | Pattern |
+|---|---|
+| Application Gateway | `{workloadName}-agw-{environment}` |
+| Public IP | `{workloadName}-pip-agw-{environment}` |
+| Managed Identity | `{workloadName}-id-agw-{environment}` |
+| WAF Policy | `{workloadName}-waf-{environment}` |
 
 Override: use the `name` parameter to define a fully custom name for the Application Gateway, ignoring the automatic convention. Secondary resources (IP, identity, WAF) continue using the automatic convention.
 
@@ -24,7 +24,6 @@ module appGateway 'modules/app-gateway/main.bicep' = {
   params: {
     workloadName: 'myapp'
     environment: 'dev'
-    prefix: 'nvt'
     subnetId: subnetAppGw.outputs.id
     skuName: 'WAF_v2'
     skuTier: 'WAF_v2'
@@ -48,9 +47,8 @@ module appGateway 'modules/app-gateway/main.bicep' = {
 | `name` | `string` | `''` | Full resource name. If provided, overrides the automatic naming convention for the Application Gateway. |
 | `workloadName` | `string` | *(required)* | Workload name (2-20 characters). Used to compose the resource name. |
 | `environment` | `string` | *(required)* | Deployment environment. Accepts any string (e.g., `dev`, `uat`, `hml`, `staging`, `prod`). |
-| `prefix` | `string` | `''` | Resource prefix. Used to compose the automatic name (e.g., `hd`, `nvt`, `corp`). |
 | `location` | `string` | `'brazilsouth'` | Azure region where the resource will be created. |
-| `tags` | `object` | `{ ManagedBy: 'NuvTools', Environment: environment }` | Tags to be applied to the resource. |
+| `tags` | `object` | `{ ManagedBy: 'Bicep', Environment: environment }` | Tags to be applied to the resource. |
 | `skuName` | `string` | `'WAF_v2'` | Application Gateway SKU name. Allowed values: `Standard_v2`, `WAF_v2`. |
 | `skuTier` | `string` | `'WAF_v2'` | Application Gateway SKU tier. Allowed values: `Standard_v2`, `WAF_v2`. |
 | `capacity` | `int` | `2` | Fixed capacity (number of instances). Used when `enableAutoScale` is `false`. |

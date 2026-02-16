@@ -1,18 +1,17 @@
 # Network Security Group
 
-Bicep Module for provisioning a Network Security Group following a configurable naming convention (`{prefix}-{workloadName}-nsg-{environment}`). When `prefix` is not provided, the generated name will be `{workloadName}-nsg-{environment}`. The `name` parameter allows you to completely override the automatic name. Supports custom security rules and optional diagnostics via Log Analytics.
+Bicep Module for provisioning a Network Security Group following a configurable naming convention (`{workloadName}-nsg-{environment}`). The `name` parameter allows you to completely override the automatic name. Supports custom security rules and optional diagnostics via Log Analytics.
 
 ## Usage
 
 ```bicep
-// Usage with prefix (generates: nvt-myapp-nsg-dev)
+// Generates: myapp-nsg-dev
 module nsg 'modules/nsg/main.bicep' = {
   name: 'deploy-nsg'
   scope: resourceGroup('my-rg')
   params: {
     workloadName: 'myapp'
     environment: 'dev'
-    prefix: 'nvt'
     securityRules: [
       {
         name: 'AllowHTTPS'
@@ -34,7 +33,7 @@ module nsg2 'modules/nsg/main.bicep' = {
   name: 'deploy-nsg-2'
   scope: resourceGroup('my-rg')
   params: {
-    name: 'meu-nsg-customizado'
+    name: 'my-custom-nsg'
     workloadName: 'myapp'
     environment: 'dev'
     securityRules: []
@@ -49,7 +48,6 @@ module nsg2 'modules/nsg/main.bicep' = {
 | `name` | `string` | `''` | Full resource name. If provided, the automatic naming convention is ignored. |
 | `workloadName` | `string` | *(required)* | Workload name (2-20 characters). Used to compose the resource name when `name` is not provided. |
 | `environment` | `string` | *(required)* | Deployment environment. Accepts any string (e.g., `dev`, `uat`, `hml`, `staging`, `prod`). |
-| `prefix` | `string` | `''` | Resource prefix. Used to compose the automatic name (e.g., `hd`, `nvt`, `corp`). When empty, the name is generated without a prefix. |
 | `location` | `string` | `'brazilsouth'` | Azure region where the resource will be created. |
 | `tags` | `object` | `{ ManagedBy: 'Bicep', Environment: environment }` | Tags to be applied to the resource. |
 | `securityRules` | `array` | `[]` | List of security rules. Each rule must contain: `name`, `priority`, `direction`, `access`, `protocol`, `sourcePortRange`, `destinationPortRange`, `sourceAddressPrefix`, `destinationAddressPrefix`. |

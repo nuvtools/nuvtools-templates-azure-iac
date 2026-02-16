@@ -1,18 +1,17 @@
-# NuvTools - SignalR Service
+# SignalR Service
 
-Bicep Module for provisioning an Azure SignalR service with configurable service mode (Default, Serverless, Classic), allowed origins (CORS), live trace, managed identity (System Assigned), and conditional diagnostics, following the NuvTools naming convention (`{prefix}-{workloadName}-sigr-{environment}`). When `prefix` is not provided, the generated name will be `{workloadName}-sigr-{environment}`. The `name` parameter allows you to completely override the automatic name.
+Bicep Module for provisioning an Azure SignalR service with configurable service mode (Default, Serverless, Classic), allowed origins (CORS), live trace, managed identity (System Assigned), and conditional diagnostics, following a configurable naming convention (`{workloadName}-sigr-{environment}`). The `name` parameter allows you to completely override the automatic name.
 
 ## Usage
 
 ```bicep
-// Usage with prefix (generates: nvt-myapp-sigr-dev)
+// Generates: myapp-sigr-dev
 module signalR 'modules/signalr/main.bicep' = {
   name: 'deploy-signalr'
   scope: resourceGroup('my-rg')
   params: {
     workloadName: 'myapp'
     environment: 'dev'
-    prefix: 'nvt'
     location: 'brazilsouth'
     skuName: 'Standard_S1'
     skuCapacity: 1
@@ -32,7 +31,7 @@ module signalR2 'modules/signalr/main.bicep' = {
   name: 'deploy-signalr-2'
   scope: resourceGroup('my-rg')
   params: {
-    name: 'meu-signalr-customizado'
+    name: 'my-custom-signalr'
     workloadName: 'myapp'
     environment: 'dev'
     location: 'brazilsouth'
@@ -47,9 +46,8 @@ module signalR2 'modules/signalr/main.bicep' = {
 | `name` | `string` | `''` | Full resource name. If provided, overrides the automatic naming convention. |
 | `workloadName` | `string` | *(required)* | Workload name (2-20 characters). Used to compose the resource name when `name` is not provided. |
 | `environment` | `string` | *(required)* | Deployment environment. Accepts any string (e.g.: `dev`, `uat`, `hml`, `staging`, `prod`). |
-| `prefix` | `string` | `''` | Resource prefix. Used to compose the automatic name (e.g.: `hd`, `nvt`, `corp`). When empty, the name is generated without a prefix. |
 | `location` | `string` | `'brazilsouth'` | Azure region where the resource will be created. |
-| `tags` | `object` | `{ ManagedBy: 'NuvTools', Environment: environment }` | Tags to be applied to the resource. |
+| `tags` | `object` | `{ ManagedBy: 'Bicep', Environment: environment }` | Tags to be applied to the resource. |
 | `skuName` | `string` | `'Standard_S1'` | SignalR service SKU. |
 | `skuCapacity` | `int` | `1` | SignalR service capacity (number of units). |
 | `serviceMode` | `string` | `'Default'` | SignalR service operation mode. Allowed values: `Default`, `Serverless`, `Classic`. |

@@ -1,13 +1,12 @@
-# NuvTools - Storage Account
+# Storage Account
 
-Bicep Module for provisioning an Azure Storage Account with optional blob containers, network rules (service endpoints), TLS configuration, and conditional diagnostics, following the NuvTools naming convention (`{prefix}{workloadName}st{environment}`, no hyphens, maximum 24 characters).
+Bicep Module for provisioning an Azure Storage Account with optional blob containers, network rules (service endpoints), TLS configuration, and conditional diagnostics, following a configurable naming convention (`{workloadName}st{environment}`, no hyphens, maximum 24 characters).
 
 ## Naming Convention
 
-The resource name is automatically generated based on the `prefix`, `workloadName`, and `environment` parameters. Storage accounts do not allow hyphens and have a 24-character limit:
+The resource name is automatically generated based on the `workloadName` and `environment` parameters. Storage accounts do not allow hyphens and have a 24-character limit:
 
-- With prefix: `{prefix}{workloadName}st{environment}` (e.g., `nvtmyappstdev`)
-- Without prefix: `{workloadName}st{environment}` (e.g., `myappstdev`)
+- Pattern: `{workloadName}st{environment}` (e.g., `myappstdev`)
 - Override: use the `name` parameter to define a fully custom name, bypassing the automatic naming convention.
 
 > **Note:** The automatically generated name is truncated to 24 characters to comply with the Azure limit.
@@ -21,7 +20,6 @@ module storageAccount 'modules/storage-account/main.bicep' = {
   params: {
     workloadName: 'myapp'
     environment: 'dev'
-    prefix: 'nvt'
     location: 'brazilsouth'
     skuName: 'Standard_LRS'
     containers: [
@@ -41,7 +39,6 @@ module storageAccount 'modules/storage-account/main.bicep' = {
 | `name` | `string` | `''` | Full resource name. If provided, the automatic naming convention is bypassed. |
 | `workloadName` | `string` | *(required)* | Workload name. Used to compose the resource name. |
 | `environment` | `string` | *(required)* | Deployment environment. Accepts any string (e.g., `dev`, `uat`, `hml`, `staging`, `prod`). |
-| `prefix` | `string` | `''` | Resource prefix. Used to compose the automatic name (e.g., `hd`, `nvt`, `corp`). |
 | `location` | `string` | `'brazilsouth'` | Azure region where the resource will be created. |
 | `tags` | `object` | `{}` | Tags to be applied to the resource. |
 | `skuName` | `string` | `'Standard_LRS'` | Storage account SKU. Allowed values: `Standard_LRS`, `Standard_GRS`, `Standard_RAGRS`, `Standard_ZRS`, `Premium_LRS`, `Premium_ZRS`. |

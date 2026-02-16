@@ -1,13 +1,12 @@
-# NuvTools - API Management
+# API Management
 
-Bicep Module for provisioning an Azure API Management service with managed identity, custom domains, VNet integration, conditional auto-scaling, availability zones, and diagnostics, following the NuvTools naming convention (`{prefix}-{workloadName}-apim-{environment}`).
+Bicep Module for provisioning an Azure API Management service with managed identity, custom domains, VNet integration, conditional auto-scaling, availability zones, and diagnostics, following a configurable naming convention (`{workloadName}-apim-{environment}`).
 
 ## Naming Convention
 
-The resource name is automatically generated based on the `prefix`, `workloadName`, and `environment` parameters:
+The resource name is automatically generated based on the `workloadName` and `environment` parameters:
 
-- With prefix: `{prefix}-{workloadName}-apim-{environment}` (e.g., `nvt-myapp-apim-dev`)
-- Without prefix: `{workloadName}-apim-{environment}` (e.g., `myapp-apim-dev`)
+- Pattern: `{workloadName}-apim-{environment}` (e.g., `myapp-apim-dev`)
 - Override: use the `name` parameter to define a fully custom name, bypassing the automatic naming convention.
 
 ## Usage
@@ -19,7 +18,6 @@ module apiManagement 'modules/api-management/main.bicep' = {
   params: {
     workloadName: 'myapp'
     environment: 'dev'
-    prefix: 'nvt'
     location: 'brazilsouth'
     skuName: 'Developer'
     skuCapacity: 1
@@ -39,9 +37,8 @@ module apiManagement 'modules/api-management/main.bicep' = {
 | `name` | `string` | `''` | Full resource name. If provided, the automatic naming convention is bypassed. |
 | `workloadName` | `string` | *(required)* | Workload name. Used to compose the resource name. Min: 2, Max: 20 characters. |
 | `environment` | `string` | *(required)* | Deployment environment. Accepts any string (e.g., `dev`, `uat`, `hml`, `staging`, `prod`). |
-| `prefix` | `string` | `''` | Resource prefix. Used to compose the automatic name (e.g., `hd`, `nvt`, `corp`). |
 | `location` | `string` | `'brazilsouth'` | Azure region where the resource will be created. |
-| `tags` | `object` | `{ ManagedBy: 'NuvTools', Environment: environment }` | Tags to be applied to the resource. |
+| `tags` | `object` | `{ ManagedBy: 'Bicep', Environment: environment }` | Tags to be applied to the resource. |
 | `skuName` | `string` | `'Developer'` | API Management service SKU. Allowed values: `Consumption`, `Developer`, `Basic`, `Standard`, `Premium`. |
 | `skuCapacity` | `int` | `1` | Capacity (number of units) of the API Management service. |
 | `publisherName` | `string` | *(required)* | Publisher name of the API Management service. |

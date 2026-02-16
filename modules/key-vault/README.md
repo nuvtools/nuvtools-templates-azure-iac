@@ -1,13 +1,12 @@
-# NuvTools - Key Vault
+# Key Vault
 
-Bicep module for provisioning a Key Vault with RBAC, soft delete, network rules, and diagnostics following the NuvTools naming convention (`{prefix}-{workloadName}-kv-{environment}`). Supports RBAC-based authorization, purge protection, subnet and IP range access rules, and sending diagnostics to Log Analytics.
+Bicep module for provisioning a Key Vault with RBAC, soft delete, network rules, and diagnostics following a configurable naming convention (`{workloadName}-kv-{environment}`). Supports RBAC-based authorization, purge protection, subnet and IP range access rules, and sending diagnostics to Log Analytics.
 
 ## Naming Convention
 
-The resource name is automatically generated based on the `prefix`, `workloadName`, and `environment` parameters:
+The resource name is automatically generated based on the `workloadName` and `environment` parameters:
 
-- With prefix: `{prefix}-{workloadName}-kv-{environment}` (e.g., `nvt-myapp-kv-dev`)
-- Without prefix: `{workloadName}-kv-{environment}` (e.g., `myapp-kv-dev`)
+- Pattern: `{workloadName}-kv-{environment}` (e.g., `myapp-kv-dev`)
 - Override: use the `name` parameter to define a fully custom name, ignoring the automatic convention.
 
 ## Usage
@@ -19,7 +18,6 @@ module keyVault 'modules/key-vault/main.bicep' = {
   params: {
     workloadName: 'myapp'
     environment: 'dev'
-    prefix: 'nvt'
     skuName: 'standard'
     networkDefaultAction: 'Deny'
     allowedSubnetIds: [
@@ -39,9 +37,8 @@ module keyVault 'modules/key-vault/main.bicep' = {
 | `name` | `string` | `''` | Full resource name. If provided, overrides the automatic naming convention. |
 | `workloadName` | `string` | *(required)* | Workload name (2-20 characters). Used to compose the resource name. |
 | `environment` | `string` | *(required)* | Deployment environment. Accepts any string (e.g., `dev`, `uat`, `hml`, `staging`, `prod`). |
-| `prefix` | `string` | `''` | Resource prefix. Used to compose the automatic name (e.g., `hd`, `nvt`, `corp`). |
 | `location` | `string` | `'brazilsouth'` | Azure region where the resource will be created. |
-| `tags` | `object` | `{ ManagedBy: 'NuvTools', Environment: environment }` | Tags to be applied to the resource. |
+| `tags` | `object` | `{ ManagedBy: 'Bicep', Environment: environment }` | Tags to be applied to the resource. |
 | `skuName` | `string` | `'standard'` | Key Vault SKU. Allowed values: `standard`, `premium`. |
 | `enableRbacAuthorization` | `bool` | `true` | Enables RBAC-based authorization instead of access policies. |
 | `enableSoftDelete` | `bool` | `true` | Enables soft delete for protection against accidental deletion. |

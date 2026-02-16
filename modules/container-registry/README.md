@@ -1,18 +1,17 @@
-# NuvTools - Container Registry
+# Container Registry
 
-Bicep module for provisioning an Azure Container Registry with AcrPull role assignments and diagnostics following the NuvTools naming convention (`{prefix}{workloadName}cr{environment}`). When `prefix` is not provided, the generated name will be `{workloadName}cr{environment}`. The name is alphanumeric, without hyphens, as required by Azure Container Registry. The `name` parameter allows you to completely override the automatic name. Supports Basic, Standard, and Premium SKUs, configurable public network access, zone redundancy, and conditional AcrPull role assignment.
+Bicep module for provisioning an Azure Container Registry with AcrPull role assignments and diagnostics following a configurable naming convention (`{workloadName}cr{environment}`). The name is alphanumeric, without hyphens, as required by Azure Container Registry. The `name` parameter allows you to completely override the automatic name. Supports Basic, Standard, and Premium SKUs, configurable public network access, zone redundancy, and conditional AcrPull role assignment.
 
 ## Usage
 
 ```bicep
-// Usage with prefix (generates: nvtmyappcrdev)
+// Generates: myappcrdev
 module acr 'modules/container-registry/main.bicep' = {
   name: 'deploy-container-registry'
   scope: resourceGroup('my-rg')
   params: {
     workloadName: 'myapp'
     environment: 'dev'
-    prefix: 'nvt'
     skuName: 'Basic'
     acrPullPrincipalIds: [
       aksCluster.outputs.kubeletIdentityObjectId
@@ -25,7 +24,7 @@ module acr2 'modules/container-registry/main.bicep' = {
   name: 'deploy-container-registry-2'
   scope: resourceGroup('my-rg')
   params: {
-    name: 'meucracrcustomizado'
+    name: 'mycustomacr'
     workloadName: 'myapp'
     environment: 'dev'
     skuName: 'Standard'
@@ -40,9 +39,8 @@ module acr2 'modules/container-registry/main.bicep' = {
 | `name` | `string` | `''` | Full resource name. If provided, overrides the automatic naming convention. Must be alphanumeric, without hyphens. |
 | `workloadName` | `string` | *(required)* | Workload name (2-20 characters). Used to compose the resource name when `name` is not provided. |
 | `environment` | `string` | *(required)* | Deployment environment. Accepts any string (e.g., `dev`, `uat`, `hml`, `staging`, `prod`). |
-| `prefix` | `string` | `''` | Resource prefix. Used to compose the automatic name (e.g., `hd`, `nvt`, `corp`). When empty, the name is generated without a prefix. |
 | `location` | `string` | `'brazilsouth'` | Azure region where the resource will be created. |
-| `tags` | `object` | `{ ManagedBy: 'NuvTools', Environment: environment }` | Tags to be applied to the resource. |
+| `tags` | `object` | `{ ManagedBy: 'Bicep', Environment: environment }` | Tags to be applied to the resource. |
 | `skuName` | `string` | `'Basic'` | Container Registry SKU. Allowed values: `Basic`, `Standard`, `Premium`. |
 | `adminUserEnabled` | `bool` | `false` | Enables the Container Registry admin user. |
 | `publicNetworkAccess` | `string` | `'Enabled'` | Public network access control. Allowed values: `Enabled`, `Disabled`. |

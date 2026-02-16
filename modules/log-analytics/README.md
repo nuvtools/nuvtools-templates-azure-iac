@@ -1,13 +1,12 @@
-# NuvTools - Log Analytics Workspace
+# Log Analytics Workspace
 
-Bicep Module for provisioning an Azure Log Analytics workspace with configurable retention, daily ingestion quota, and optional linked storage accounts, following the NuvTools naming convention (`{prefix}-{workloadName}-log-{environment}`).
+Bicep Module for provisioning an Azure Log Analytics workspace with configurable retention, daily ingestion quota, and optional linked storage accounts, following a configurable naming convention (`{workloadName}-log-{environment}`).
 
 ## Naming Convention
 
-The resource name is automatically generated based on the `prefix`, `workloadName`, and `environment` parameters:
+The resource name is automatically generated based on the `workloadName` and `environment` parameters:
 
-- With prefix: `{prefix}-{workloadName}-log-{environment}` (e.g., `nvt-myapp-log-dev`)
-- Without prefix: `{workloadName}-log-{environment}` (e.g., `myapp-log-dev`)
+- Pattern: `{workloadName}-log-{environment}` (e.g., `myapp-log-dev`)
 - Override: use the `name` parameter to define a fully custom name, bypassing the automatic naming convention.
 
 ## Usage
@@ -19,7 +18,6 @@ module logAnalytics 'modules/log-analytics/main.bicep' = {
   params: {
     workloadName: 'myapp'
     environment: 'dev'
-    prefix: 'nvt'
     location: 'brazilsouth'
     retentionInDays: 90
     dailyQuotaGb: 5
@@ -37,9 +35,8 @@ module logAnalytics 'modules/log-analytics/main.bicep' = {
 | `name` | `string` | `''` | Full resource name. If provided, the automatic naming convention is bypassed. |
 | `workloadName` | `string` | *(required)* | Workload name. Used to compose the resource name. Min: 2, Max: 20 characters. |
 | `environment` | `string` | *(required)* | Deployment environment. Accepts any string (e.g., `dev`, `uat`, `hml`, `staging`, `prod`). |
-| `prefix` | `string` | `''` | Resource prefix. Used to compose the automatic name (e.g., `hd`, `nvt`, `corp`). |
 | `location` | `string` | `'brazilsouth'` | Azure region where the resource will be created. |
-| `tags` | `object` | `{ ManagedBy: 'NuvTools', Environment: environment }` | Tags to be applied to the resource. |
+| `tags` | `object` | `{ ManagedBy: 'Bicep', Environment: environment }` | Tags to be applied to the resource. |
 | `skuName` | `string` | `'PerGB2018'` | Log Analytics workspace SKU. |
 | `retentionInDays` | `int` | `30` | Data retention period in days. Min: 30, Max: 730. |
 | `dailyQuotaGb` | `int` | `-1` | Daily ingestion quota in GB. The value `-1` means no limit. |

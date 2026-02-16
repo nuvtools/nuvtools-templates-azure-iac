@@ -1,6 +1,6 @@
-# NuvTools - Kubernetes Node Pool
+# Kubernetes Node Pool
 
-Bicep module for provisioning an additional node pool on an existing AKS cluster following the NuvTools convention. The node pool name is provided directly by the user via the `nodePoolName` parameter (maximum 12 characters, AKS limitation). Supports auto scaling, Spot VMs, labels, taints, and availability zones. When configured with Spot VMs, availability zones are automatically disabled and the eviction policy is set to `Delete`.
+Bicep module for provisioning an additional node pool on an existing AKS cluster. The node pool name is provided directly by the user via the `nodePoolName` parameter (maximum 12 characters, AKS limitation). Supports auto scaling, Spot VMs, labels, taints, and availability zones. When configured with Spot VMs, availability zones are automatically disabled and the eviction policy is set to `Delete`.
 
 ## Usage
 
@@ -11,7 +11,6 @@ module nodePool 'modules/kubernetes-nodepool/main.bicep' = {
   params: {
     workloadName: 'myapp'
     environment: 'dev'
-    prefix: 'nvt'
     clusterName: aksCluster.outputs.name
     nodePoolName: 'userpool'
     vmSize: 'Standard_D4s_v3'
@@ -27,7 +26,7 @@ module nodePool 'modules/kubernetes-nodepool/main.bicep' = {
 }
 ```
 
-> **Note:** This module does not use automatic naming. The node pool name is defined directly by the `nodePoolName` parameter. The `workloadName`, `environment`, and `prefix` parameters are kept for interface standardization across modules and tag composition.
+> **Note:** This module does not use automatic naming. The node pool name is defined directly by the `nodePoolName` parameter. The `workloadName` and `environment` parameters are kept for interface standardization across modules and tag composition.
 
 ## Parameters
 
@@ -35,9 +34,8 @@ module nodePool 'modules/kubernetes-nodepool/main.bicep' = {
 |---|---|---|---|
 | `workloadName` | `string` | *(required)* | Workload name (2-20 characters). Kept for interface standardization across modules. |
 | `environment` | `string` | *(required)* | Deployment environment. Accepts any string (e.g., `dev`, `uat`, `hml`, `staging`, `prod`). |
-| `prefix` | `string` | `''` | Resource prefix. Kept for interface standardization across modules. |
 | `location` | `string` | `'brazilsouth'` | Azure region where the resource will be created. |
-| `tags` | `object` | `{ ManagedBy: 'NuvTools', Environment: environment }` | Tags to be applied to the resource. |
+| `tags` | `object` | `{ ManagedBy: 'Bicep', Environment: environment }` | Tags to be applied to the resource. |
 | `clusterName` | `string` | *(required)* | Name of the existing AKS cluster where the node pool will be created. |
 | `nodePoolName` | `string` | *(required)* | Node pool name (maximum 12 characters, AKS limitation). |
 | `vmSize` | `string` | `'Standard_D4s_v3'` | VM size for the pool nodes. |

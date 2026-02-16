@@ -1,6 +1,6 @@
 # Subnet
 
-Bicep Module for provisioning a Subnet as a child resource of an existing Virtual Network. This module does not follow the automatic naming convention `{prefix}-{workloadName}-{abbr}-{environment}`, since the subnet name is provided directly by the user through the `subnetName` parameter. Supports association with NSG, Route Table, NAT Gateway, Service Endpoints, delegations, and Private Endpoint policies.
+Bicep Module for provisioning a Subnet as a child resource of an existing Virtual Network. This module does not follow the automatic naming convention `{workloadName}-{abbr}-{environment}`, since the subnet name is provided directly by the user through the `subnetName` parameter. Supports association with NSG, Route Table, NAT Gateway, Service Endpoints, delegations, and Private Endpoint policies.
 
 ## Usage
 
@@ -9,7 +9,7 @@ module subnet 'modules/subnet/main.bicep' = {
   name: 'deploy-subnet'
   scope: resourceGroup('my-rg')
   params: {
-    virtualNetworkName: 'nvt-myapp-vnet-dev'
+    virtualNetworkName: 'myapp-vnet-dev'
     subnetName: 'snet-workloads'
     addressPrefix: '10.0.1.0/24'
     networkSecurityGroupId: nsg.outputs.id

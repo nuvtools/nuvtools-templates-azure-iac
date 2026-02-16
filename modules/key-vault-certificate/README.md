@@ -1,6 +1,6 @@
-# NuvTools - Key Vault Certificate
+# Key Vault Certificate
 
-Bicep module for provisioning a certificate in Key Vault with a configurable policy (self-signed or CA) following the NuvTools convention. Supports self-signed certificates (`Self`) or certificates issued by a CA configured in Key Vault, with automatic renewal, configurable key type (RSA/EC), and private key export.
+Bicep module for provisioning a certificate in Key Vault with a configurable policy (self-signed or CA) following a configurable convention. Supports self-signed certificates (`Self`) or certificates issued by a CA configured in Key Vault, with automatic renewal, configurable key type (RSA/EC), and private key export.
 
 ## Naming Convention
 

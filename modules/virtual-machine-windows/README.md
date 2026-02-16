@@ -1,18 +1,17 @@
-# NuvTools - Virtual Machine Windows
+# Virtual Machine Windows
 
-Bicep Module for provisioning a Windows virtual machine with a dedicated network interface, managed identity (System Assigned), support for static or dynamic private IP, accelerated networking, boot diagnostics, and time zone configured for Brazil, following the NuvTools naming convention (`{prefix}-{workloadName}-vm-{environment}`). When `prefix` is not provided, the generated name will be `{workloadName}-vm-{environment}`. The network interface follows the pattern `{prefix}-{workloadName}-nic-{environment}`. The `name` parameter allows you to completely override the automatic VM name.
+Bicep Module for provisioning a Windows virtual machine with a dedicated network interface, managed identity (System Assigned), support for static or dynamic private IP, accelerated networking, boot diagnostics, and time zone configured for Brazil, following a configurable naming convention (`{workloadName}-vm-{environment}`). The network interface follows the pattern `{workloadName}-nic-{environment}`. The `name` parameter allows you to completely override the automatic VM name.
 
 ## Usage
 
 ```bicep
-// Usage with prefix (generates: nvt-myapp-vm-dev and nvt-myapp-nic-dev)
+// Generates: myapp-vm-dev and myapp-nic-dev
 module vmWindows 'modules/virtual-machine-windows/main.bicep' = {
   name: 'deploy-vm-windows'
   scope: resourceGroup('my-rg')
   params: {
     workloadName: 'myapp'
     environment: 'dev'
-    prefix: 'nvt'
     location: 'brazilsouth'
     vmSize: 'Standard_D2s_v3'
     adminUsername: 'azureadmin'
@@ -32,7 +31,7 @@ module vmWindows2 'modules/virtual-machine-windows/main.bicep' = {
   name: 'deploy-vm-windows-2'
   scope: resourceGroup('my-rg')
   params: {
-    name: 'minha-vm-customizada'
+    name: 'my-custom-vm'
     workloadName: 'myapp'
     environment: 'dev'
     location: 'brazilsouth'
@@ -50,9 +49,8 @@ module vmWindows2 'modules/virtual-machine-windows/main.bicep' = {
 | `name` | `string` | `''` | Full resource name. If provided, overrides the automatic naming convention. |
 | `workloadName` | `string` | *(required)* | Workload name (2-20 characters). Used to compose the resource name when `name` is not provided. |
 | `environment` | `string` | *(required)* | Deployment environment. Accepts any string (e.g.: `dev`, `uat`, `hml`, `staging`, `prod`). |
-| `prefix` | `string` | `''` | Resource prefix. Used to compose the automatic name (e.g.: `hd`, `nvt`, `corp`). When empty, the name is generated without a prefix. |
 | `location` | `string` | `'brazilsouth'` | Azure region where the resource will be created. |
-| `tags` | `object` | `{ ManagedBy: 'NuvTools', Environment: environment }` | Tags to be applied to the resource. |
+| `tags` | `object` | `{ ManagedBy: 'Bicep', Environment: environment }` | Tags to be applied to the resource. |
 | `vmSize` | `string` | `'Standard_D2s_v3'` | Virtual machine size. |
 | `adminUsername` | `string` | *(required)* | Administrator username for the virtual machine. |
 | `adminPassword` | `string` (secure) | *(required)* | Administrator password for the virtual machine. |

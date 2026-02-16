@@ -1,13 +1,12 @@
-# NuvTools - SQL Server
+# SQL Server
 
-Bicep Module for provisioning an Azure SQL Server with managed identity (System Assigned), Azure AD administrator configuration, auditing policy, Advanced Threat Protection, vulnerability assessment, and conditional diagnostics, following the NuvTools naming convention (`{prefix}-{workloadName}-sql-{environment}`).
+Bicep Module for provisioning an Azure SQL Server with managed identity (System Assigned), Azure AD administrator configuration, auditing policy, Advanced Threat Protection, vulnerability assessment, and conditional diagnostics, following a configurable naming convention (`{workloadName}-sql-{environment}`).
 
 ## Naming Convention
 
-The resource name is automatically generated based on the `prefix`, `workloadName`, and `environment` parameters:
+The resource name is automatically generated based on the `workloadName` and `environment` parameters:
 
-- With prefix: `{prefix}-{workloadName}-sql-{environment}` (e.g., `nvt-myapp-sql-dev`)
-- Without prefix: `{workloadName}-sql-{environment}` (e.g., `myapp-sql-dev`)
+- Pattern: `{workloadName}-sql-{environment}` (e.g., `myapp-sql-dev`)
 - Override: use the `name` parameter to define a fully custom name, bypassing the automatic naming convention.
 
 ## Usage
@@ -19,7 +18,6 @@ module sqlServer 'modules/sql-server/main.bicep' = {
   params: {
     workloadName: 'myapp'
     environment: 'dev'
-    prefix: 'nvt'
     location: 'brazilsouth'
     administratorLogin: 'sqladmin'
     administratorPassword: 'S3cur3P@ssw0rd!'
@@ -42,9 +40,8 @@ module sqlServer 'modules/sql-server/main.bicep' = {
 | `name` | `string` | `''` | Full resource name. If provided, the automatic naming convention is bypassed. |
 | `workloadName` | `string` | *(required)* | Workload name. Used to compose the resource name. Min: 2, Max: 20 characters. |
 | `environment` | `string` | *(required)* | Deployment environment. Accepts any string (e.g., `dev`, `uat`, `hml`, `staging`, `prod`). |
-| `prefix` | `string` | `''` | Resource prefix. Used to compose the automatic name (e.g., `hd`, `nvt`, `corp`). |
 | `location` | `string` | `'brazilsouth'` | Azure region where the resource will be created. |
-| `tags` | `object` | `{ ManagedBy: 'NuvTools', Environment: environment }` | Tags to be applied to the resource. |
+| `tags` | `object` | `{ ManagedBy: 'Bicep', Environment: environment }` | Tags to be applied to the resource. |
 | `administratorLogin` | `string` | *(required)* | SQL Server administrator login. |
 | `administratorPassword` | `string` (secure) | *(required)* | SQL Server administrator password. |
 | `minimalTlsVersion` | `string` | `'1.2'` | Minimum allowed TLS version for connections. |

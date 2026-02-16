@@ -1,18 +1,17 @@
-# NuvTools - Redis Cache
+# Redis Cache
 
-Bicep Module for provisioning an Azure Cache for Redis instance with SKU configuration, TLS, VNet injection (available on the Premium SKU), managed identity (System Assigned), firewall rules, and conditional diagnostics, following the NuvTools naming convention (`{prefix}-{workloadName}-redis-{environment}`). When `prefix` is not provided, the generated name will be `{workloadName}-redis-{environment}`. The `name` parameter allows you to completely override the automatic name.
+Bicep Module for provisioning an Azure Cache for Redis instance with SKU configuration, TLS, VNet injection (available on the Premium SKU), managed identity (System Assigned), firewall rules, and conditional diagnostics, following a configurable naming convention (`{workloadName}-redis-{environment}`). The `name` parameter allows you to completely override the automatic name.
 
 ## Usage
 
 ```bicep
-// Usage with prefix (generates: nvt-myapp-redis-dev)
+// Generates: myapp-redis-dev
 module redisCache 'modules/redis-cache/main.bicep' = {
   name: 'deploy-redis-cache'
   scope: resourceGroup('my-rg')
   params: {
     workloadName: 'myapp'
     environment: 'dev'
-    prefix: 'nvt'
     location: 'brazilsouth'
     skuName: 'Standard'
     skuFamily: 'C'
@@ -32,7 +31,7 @@ module redisCache2 'modules/redis-cache/main.bicep' = {
   name: 'deploy-redis-cache-2'
   scope: resourceGroup('my-rg')
   params: {
-    name: 'meu-redis-customizado'
+    name: 'my-custom-redis'
     workloadName: 'myapp'
     environment: 'dev'
     location: 'brazilsouth'
@@ -47,9 +46,8 @@ module redisCache2 'modules/redis-cache/main.bicep' = {
 | `name` | `string` | `''` | Full resource name. If provided, overrides the automatic naming convention. |
 | `workloadName` | `string` | *(required)* | Workload name (2-20 characters). Used to compose the resource name when `name` is not provided. |
 | `environment` | `string` | *(required)* | Deployment environment. Accepts any string (e.g.: `dev`, `uat`, `hml`, `staging`, `prod`). |
-| `prefix` | `string` | `''` | Resource prefix. Used to compose the automatic name (e.g.: `hd`, `nvt`, `corp`). When empty, the name is generated without a prefix. |
 | `location` | `string` | `'brazilsouth'` | Azure region where the resource will be created. |
-| `tags` | `object` | `{ ManagedBy: 'NuvTools', Environment: environment }` | Tags to be applied to the resource. |
+| `tags` | `object` | `{ ManagedBy: 'Bicep', Environment: environment }` | Tags to be applied to the resource. |
 | `skuName` | `string` | `'Standard'` | Redis Cache SKU name. Allowed values: `Basic`, `Standard`, `Premium`. |
 | `skuFamily` | `string` | `'C'` | Redis Cache SKU family. `C` for Basic/Standard, `P` for Premium. |
 | `skuCapacity` | `int` | `1` | Redis Cache instance capacity (size). Valid values: 0-6 for Basic/Standard, 1-5 for Premium. |

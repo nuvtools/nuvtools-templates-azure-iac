@@ -55,11 +55,10 @@ nuvtools-azure-bicep-templates/
 
 ## Naming Convention
 
-All resources follow the pattern: **`{prefix}-{workloadName}-{abbreviation}-{environment}`**
+All resources follow the pattern: **`{workloadName}-{abbreviation}-{environment}`**
 
-- If the `prefix` parameter is empty: **`{workloadName}-{abbreviation}-{environment}`**
 - If the `name` parameter is provided, the automatically generated name is ignored and the value of `name` is used directly.
-- Resources that do not support hyphens (ACR, Storage Account) use the format: **`{prefix}{workloadName}{abbreviation}{environment}`**
+- Resources that do not support hyphens (ACR, Storage Account) use the format: **`{workloadName}{abbreviation}{environment}`**
 - The `environment` parameter accepts any string (e.g.: `dev`, `uat`, `hml`, `staging`, `prod`, etc.).
 
 ### Naming Parameters
@@ -67,37 +66,38 @@ All resources follow the pattern: **`{prefix}-{workloadName}-{abbreviation}-{env
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `name` | string | `''` | Full resource name. When provided, overrides the automatically generated name |
-| `prefix` | string | `''` | Resource name prefix. Previously hardcoded as `nvt` |
 | `workloadName` | string | (required) | Workload name |
 | `environment` | string | (required) | Environment (accepts any string: `dev`, `uat`, `hml`, `staging`, `prod`, etc.) |
 
 ### CAF Abbreviations per Resource
 
-| Resource | Abbreviation | Pattern (with prefix) | Example (`prefix=hd`) |
+| Resource | Abbreviation | Pattern | Example |
 |---|---|---|---|
-| Resource Group | `rg` | `{prefix}-{name}-rg-{env}` | `hd-myapp-rg-dev` |
-| Virtual Network | `vnet` | `{prefix}-{name}-vnet-{env}` | `hd-myapp-vnet-dev` |
-| Subnet | `snet` | `{prefix}-{name}-snet-{env}` | `hd-myapp-snet-dev` |
-| NSG | `nsg` | `{prefix}-{name}-nsg-{env}` | `hd-myapp-nsg-dev` |
-| NAT Gateway | `ng` | `{prefix}-{name}-ng-{env}` | `hd-myapp-ng-dev` |
-| Private Endpoint | `pep` | `{prefix}-{name}-pep-{env}` | `hd-myapp-pep-dev` |
-| Key Vault | `kv` | `{prefix}-{name}-kv-{env}` | `hd-myapp-kv-dev` |
-| AKS | `aks` | `{prefix}-{name}-aks-{env}` | `hd-myapp-aks-dev` |
-| SQL Server | `sql` | `{prefix}-{name}-sql-{env}` | `hd-myapp-sql-dev` |
-| SQL Database | `sqldb` | `{prefix}-{name}-sqldb-{env}` | `hd-myapp-sqldb-dev` |
-| Log Analytics | `log` | `{prefix}-{name}-log-{env}` | `hd-myapp-log-dev` |
-| App Insights | `appi` | `{prefix}-{name}-appi-{env}` | `hd-myapp-appi-dev` |
-| App Gateway | `agw` | `{prefix}-{name}-agw-{env}` | `hd-myapp-agw-dev` |
-| WAF Policy | `waf` | `{prefix}-{name}-waf-{env}` | `hd-myapp-waf-dev` |
-| API Management | `apim` | `{prefix}-{name}-apim-{env}` | `hd-myapp-apim-dev` |
-| Bastion | `bas` | `{prefix}-{name}-bas-{env}` | `hd-myapp-bas-dev` |
-| Event Hub | `evh` | `{prefix}-{name}-evh-{env}` | `hd-myapp-evh-dev` |
-| Redis Cache | `redis` | `{prefix}-{name}-redis-{env}` | `hd-myapp-redis-dev` |
-| Service Bus | `sbns` | `{prefix}-{name}-sbns-{env}` | `hd-myapp-sbns-dev` |
-| SignalR | `sigr` | `{prefix}-{name}-sigr-{env}` | `hd-myapp-sigr-dev` |
-| Virtual Machine | `vm` | `{prefix}-{name}-vm-{env}` | `hd-myapp-vm-dev` |
-| Storage Account | `st` | `{prefix}{name}st{env}` | `hdmyappstdev` |
-| Container Registry | `cr` | `{prefix}{name}cr{env}` | `hdmyappcrdev` |
+| Resource Group | `rg` | `{workloadName}-rg-{env}` | `myapp-rg-dev` |
+| Virtual Network | `vnet` | `{workloadName}-vnet-{env}` | `myapp-vnet-dev` |
+| Subnet | `snet` | `{workloadName}-snet-{env}` | `myapp-snet-dev` |
+| NSG | `nsg` | `{workloadName}-nsg-{env}` | `myapp-nsg-dev` |
+| NAT Gateway | `ng` | `{workloadName}-ng-{env}` | `myapp-ng-dev` |
+| Private Endpoint | `pep` | `{workloadName}-pep-{env}` | `myapp-pep-dev` |
+| Key Vault | `kv` | `{workloadName}-kv-{env}` | `myapp-kv-dev` |
+| AKS | `aks` | `{workloadName}-aks-{env}` | `myapp-aks-dev` |
+| SQL Server | `sql` | `{workloadName}-sql-{env}` | `myapp-sql-dev` |
+| SQL Database | `sqldb` | `{workloadName}-sqldb-{env}` | `myapp-sqldb-dev` |
+| Log Analytics | `log` | `{workloadName}-log-{env}` | `myapp-log-dev` |
+| App Insights | `appi` | `{workloadName}-appi-{env}` | `myapp-appi-dev` |
+| App Gateway | `agw` | `{workloadName}-agw-{env}` | `myapp-agw-dev` |
+| WAF Policy | `waf` | `{workloadName}-waf-{env}` | `myapp-waf-dev` |
+| API Management | `apim` | `{workloadName}-apim-{env}` | `myapp-apim-dev` |
+| Bastion | `bas` | `{workloadName}-bas-{env}` | `myapp-bas-dev` |
+| Event Hub | `evh` | `{workloadName}-evh-{env}` | `myapp-evh-dev` |
+| Redis Cache | `redis` | `{workloadName}-redis-{env}` | `myapp-redis-dev` |
+| Service Bus | `sbns` | `{workloadName}-sbns-{env}` | `myapp-sbns-dev` |
+| SignalR | `sigr` | `{workloadName}-sigr-{env}` | `myapp-sigr-dev` |
+| Virtual Machine | `vm` | `{workloadName}-vm-{env}` | `myapp-vm-dev` |
+| Storage Account | `st` | `{workloadName}st{env}` | `myappstdev` |
+| Container Registry | `cr` | `{workloadName}cr{env}` | `myappcrdev` |
+
+> See [Abbreviation recommendations for Azure resources](https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/azure-best-practices/resource-abbreviations) for the full list.
 
 > **Note on CAF abbreviation changes:** `natgw` was changed to `ng`, `pve` to `pep`, `law` to `log`, `sb` to `sbns`, and `wafpol` to `waf`.
 
@@ -157,21 +157,9 @@ az deployment sub what-if \
 ### Use a module individually
 
 ```bicep
-// Example with prefix — generates the name: hd-myapp-kv-dev
+// Generates the name: myapp-kv-dev
 module kv 'modules/key-vault/main.bicep' = {
   name: 'deploy-key-vault'
-  scope: resourceGroup('my-rg')
-  params: {
-    prefix: 'hd'
-    workloadName: 'myapp'
-    environment: 'dev'
-    location: 'brazilsouth'
-  }
-}
-
-// Example without prefix — generates the name: myapp-kv-dev
-module kv2 'modules/key-vault/main.bicep' = {
-  name: 'deploy-key-vault-no-prefix'
   scope: resourceGroup('my-rg')
   params: {
     workloadName: 'myapp'
@@ -181,7 +169,7 @@ module kv2 'modules/key-vault/main.bicep' = {
 }
 
 // Example with name (full override) — uses exactly the provided name
-module kv3 'modules/key-vault/main.bicep' = {
+module kv2 'modules/key-vault/main.bicep' = {
   name: 'deploy-key-vault-custom'
   scope: resourceGroup('my-rg')
   params: {
@@ -218,7 +206,6 @@ All modules accept the following common parameters:
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `name` | string | `''` | Full resource name. When provided, overrides the automatically generated name |
-| `prefix` | string | `''` | Resource name prefix (e.g.: `hd`, `nvt`). If empty, the name is generated without a prefix |
 | `workloadName` | string | (required) | Workload name |
 | `environment` | string | (required) | Environment (accepts any string: `dev`, `uat`, `hml`, `staging`, `prod`, etc.) |
 | `location` | string | `brazilsouth` | Azure region |

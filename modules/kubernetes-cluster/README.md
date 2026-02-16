@@ -1,20 +1,19 @@
-# NuvTools - Kubernetes Cluster
+# Kubernetes Cluster
 
-Bicep module for provisioning an Azure Kubernetes Service (AKS) cluster with advanced networking, conditional addons, and managed identity following the NuvTools naming convention (`{prefix}-{workloadName}-aks-{environment}`). When `prefix` is not provided, the generated name will be `{workloadName}-aks-{environment}`. The `name` parameter allows you to completely override the automatic name. Supports default node pool configuration, network plugins (Azure CNI / Kubenet), Application Gateway integration (AGIC), OMS Agent, Microsoft Defender, Key Vault CSI Driver, Workload Identity, and OIDC.
+Bicep module for provisioning an Azure Kubernetes Service (AKS) cluster with advanced networking, conditional addons, and managed identity following a configurable naming convention (`{workloadName}-aks-{environment}`). The `name` parameter allows you to completely override the automatic name. Supports default node pool configuration, network plugins (Azure CNI / Kubenet), Application Gateway integration (AGIC), OMS Agent, Microsoft Defender, Key Vault CSI Driver, Workload Identity, and OIDC.
 
 ## Usage
 
 ```bicep
-// Usage with prefix (generates: nvt-myapp-aks-dev)
+// Generates: myapp-aks-dev
 module aks 'modules/kubernetes-cluster/main.bicep' = {
   name: 'deploy-kubernetes-cluster'
   scope: resourceGroup('my-rg')
   params: {
     workloadName: 'myapp'
     environment: 'dev'
-    prefix: 'nvt'
     kubernetesVersion: '1.29'
-    sshPublicKey: '<chave-ssh-publica>'
+    sshPublicKey: '<ssh-public-key>'
     defaultNodePool: {
       vmSize: 'Standard_D4s_v3'
       count: 3
@@ -41,11 +40,11 @@ module aks2 'modules/kubernetes-cluster/main.bicep' = {
   name: 'deploy-kubernetes-cluster-2'
   scope: resourceGroup('my-rg')
   params: {
-    name: 'meu-aks-customizado'
+    name: 'my-custom-aks'
     workloadName: 'myapp'
     environment: 'dev'
     kubernetesVersion: '1.29'
-    sshPublicKey: '<chave-ssh-publica>'
+    sshPublicKey: '<ssh-public-key>'
     networkPlugin: 'azure'
   }
 }
@@ -58,9 +57,8 @@ module aks2 'modules/kubernetes-cluster/main.bicep' = {
 | `name` | `string` | `''` | Full resource name. If provided, overrides the automatic naming convention. |
 | `workloadName` | `string` | *(required)* | Workload name (2-20 characters). Used to compose the resource name when `name` is not provided. |
 | `environment` | `string` | *(required)* | Deployment environment. Accepts any string (e.g., `dev`, `uat`, `hml`, `staging`, `prod`). |
-| `prefix` | `string` | `''` | Resource prefix. Used to compose the automatic name (e.g., `hd`, `nvt`, `corp`). When empty, the name is generated without a prefix. |
 | `location` | `string` | `'brazilsouth'` | Azure region where the resource will be created. |
-| `tags` | `object` | `{ ManagedBy: 'NuvTools', Environment: environment }` | Tags to be applied to the resource. |
+| `tags` | `object` | `{ ManagedBy: 'Bicep', Environment: environment }` | Tags to be applied to the resource. |
 | `kubernetesVersion` | `string` | `'1.29'` | Kubernetes version to be used in the cluster. |
 | `dnsPrefix` | `string` | `''` | DNS prefix for the cluster. If not provided, it will be generated based on the resource name. |
 | `defaultNodePool` | `object` | *(see below)* | Default node pool configuration for the cluster. |
