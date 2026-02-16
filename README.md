@@ -9,50 +9,55 @@ This project contains **27 Bicep modules** covering over **60 Azure resource typ
 ## Project Structure
 
 ```
-azure-bicep-templates/
-├── modules/                      # Reusable Bicep modules (template library)
-│   ├── resource-group/           # Resource Group
-│   ├── virtual-network/          # Virtual Network
-│   ├── subnet/                   # Subnet
-│   ├── nsg/                      # Network Security Group
-│   ├── nat-gateway/              # NAT Gateway + PIP Prefix
-│   ├── private-dns-zone/         # Private DNS + VNet links
-│   ├── private-endpoint/         # Generic Private Endpoint
-│   ├── container-registry/       # Azure Container Registry
-│   ├── kubernetes-cluster/       # Azure Kubernetes Service
-│   ├── kubernetes-nodepool/      # Additional AKS Node Pool
-│   ├── key-vault/                # Azure Key Vault
-│   ├── key-vault-certificate/    # Key Vault Certificate
-│   ├── app-gateway/              # Application Gateway + WAF
-│   ├── app-insights/             # Application Insights
-│   ├── log-analytics/            # Log Analytics Workspace
-│   ├── storage-account/          # Storage Account
-│   ├── sql-server/               # SQL Server + auditing
-│   ├── sql-database/             # SQL Database
-│   ├── api-management/           # API Management
-│   ├── bastion/                  # Azure Bastion
-│   ├── event-hub/                # Event Hub Namespace + Hubs
-│   ├── redis-cache/              # Redis Cache
-│   ├── service-bus/              # Service Bus + queues/topics
-│   ├── signalr/                  # Azure SignalR Service
-│   ├── virtual-machine-windows/  # Windows VM + NIC
-│   ├── role-assignment/          # RBAC Assignment
-│   └── policy/                   # Azure Policy
-├── examples/                     # Reference consumer implementation
-│   ├── main.bicep                # Example orchestrator (subscription scope)
-│   ├── main.bicepparam           # Default parameters
-│   ├── environments/             # Parameters per environment
+nuvtools-templates-azure-iac/
+├── modules/                          # Reusable Bicep modules (template library)
+│   ├── api-management/               # API Management
+│   ├── app-gateway/                  # Application Gateway + WAF
+│   ├── app-insights/                 # Application Insights
+│   ├── bastion/                      # Azure Bastion
+│   ├── container-registry/           # Azure Container Registry
+│   ├── event-hub/                    # Event Hub Namespace + Hubs
+│   ├── key-vault/                    # Azure Key Vault
+│   ├── key-vault-certificate/        # Key Vault Certificate
+│   ├── kubernetes-cluster/           # Azure Kubernetes Service
+│   ├── kubernetes-nodepool/          # Additional AKS Node Pool
+│   ├── log-analytics/                # Log Analytics Workspace
+│   ├── nat-gateway/                  # NAT Gateway + PIP Prefix
+│   ├── nsg/                          # Network Security Group
+│   ├── policy/                       # Azure Policy
+│   ├── private-dns-zone/             # Private DNS + VNet links
+│   ├── private-endpoint/             # Generic Private Endpoint
+│   ├── redis-cache/                  # Redis Cache
+│   ├── resource-group/               # Resource Group
+│   ├── role-assignment/              # RBAC Assignment
+│   ├── service-bus/                  # Service Bus + queues/topics
+│   ├── signalr/                      # Azure SignalR Service
+│   ├── sql-database/                 # SQL Database
+│   ├── sql-server/                   # SQL Server + auditing
+│   ├── storage-account/              # Storage Account
+│   ├── subnet/                       # Subnet
+│   ├── virtual-machine-windows/      # Windows VM + NIC
+│   └── virtual-network/              # Virtual Network
+│       ├── main.bicep                # Module template
+│       └── README.md                 # Module documentation
+├── examples/                         # Reference consumer implementation
+│   ├── main.bicep                    # Example orchestrator (subscription scope)
+│   ├── main.bicepparam               # Default parameters
+│   ├── environments/                 # Parameters per environment
 │   │   ├── dev.bicepparam
 │   │   ├── staging.bicepparam
 │   │   └── prod.bicepparam
-│   └── .github/workflows/        # Reference deploy workflow templates
+│   └── .github/workflows/            # Reference deploy workflow templates
 │       ├── reusable-deploy.yml
 │       ├── deploy-dev.yml
 │       ├── deploy-staging.yml
 │       └── deploy-prod.yml
-├── bicepconfig.json              # Shared lint rules
-└── .github/workflows/            # Repo CI
-    └── validate.yml
+├── .github/workflows/                # Repo CI
+│   └── validate.yml
+├── bicepconfig.json                  # Shared lint rules
+├── CLAUDE.md                         # AI assistant instructions
+├── LICENSE                           # MIT License
+└── README.md
 ```
 
 ## Naming Convention
