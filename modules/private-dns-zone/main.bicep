@@ -59,7 +59,7 @@ resource vnetLinks 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-0
     virtualNetwork: {
       id: link.virtualNetworkId
     }
-    registrationEnabled: contains(link, 'registrationEnabled') ? link.registrationEnabled : false
+    registrationEnabled: link.?registrationEnabled ?? false
   }
 }]
 

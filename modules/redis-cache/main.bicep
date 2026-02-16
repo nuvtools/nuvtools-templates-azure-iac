@@ -99,7 +99,7 @@ var redisCacheName = empty(name) ? autoName : name
 // Resources
 // =============================================================================
 
-resource redisCache 'Microsoft.Cache/redis@2024-03-01' = {
+resource redisCache 'Microsoft.Cache/redis@2024-11-01' = {
   name: redisCacheName
   location: location
   tags: tags
@@ -122,7 +122,7 @@ resource redisCache 'Microsoft.Cache/redis@2024-03-01' = {
 }
 
 // Firewall rule to allow access from Azure services - enabled only when public access is enabled
-resource firewallRuleAllowAzureServices 'Microsoft.Cache/redis/firewallRules@2024-03-01' = if (publicNetworkAccess == 'Enabled') {
+resource firewallRuleAllowAzureServices 'Microsoft.Cache/redis/firewallRules@2024-11-01' = if (publicNetworkAccess == 'Enabled') {
   name: 'AllowAzureServices'
   parent: redisCache
   properties: {
@@ -132,6 +132,7 @@ resource firewallRuleAllowAzureServices 'Microsoft.Cache/redis/firewallRules@202
 }
 
 // Conditional diagnostic settings
+#disable-next-line use-recent-api-versions
 resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (enableDiagnostics && !empty(logAnalyticsWorkspaceId)) {
   name: '${redisCacheName}-diag'
   scope: redisCache

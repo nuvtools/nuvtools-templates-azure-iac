@@ -68,8 +68,9 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
     Application_Type: applicationType
     WorkspaceResourceId: logAnalyticsWorkspaceId
     DisableIpMasking: disableIpMasking
-    RetentionInDays: retentionInDays
     SamplingPercentage: samplingPercentage
+    #disable-next-line BCP073
+    RetentionInDays: retentionInDays
   }
 }
 

@@ -56,7 +56,7 @@ var privateEndpointName = empty(name) ? autoName : name
 // Resources
 // =============================================================================
 
-resource privateEndpoint 'Microsoft.Network/privateEndpoints@2024-01-01' = {
+resource privateEndpoint 'Microsoft.Network/privateEndpoints@2024-05-01' = {
   name: privateEndpointName
   location: location
   tags: tags
@@ -77,7 +77,7 @@ resource privateEndpoint 'Microsoft.Network/privateEndpoints@2024-01-01' = {
 }
 
 // DNS zone group for automatic DNS registration when a private zone is provided
-resource dnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2024-01-01' = if (privateDnsZoneId != '') {
+resource dnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2024-05-01' = if (privateDnsZoneId != '') {
   name: 'default'
   parent: privateEndpoint
   properties: {

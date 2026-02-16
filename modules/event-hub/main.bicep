@@ -69,10 +69,18 @@ param logAnalyticsWorkspaceId string = ''
 var autoName = '${workloadName}-evhns-${environment}'
 var namespaceName = empty(name) ? autoName : name
 
+// Flattened list of consumer groups across all Event Hubs (for single-loop iteration)
+var flatConsumerGroups = flatten(map(eventHubs, (hub, hubIndex) => map(hub.?consumerGroups ?? [], group => {
+  hubIndex: hubIndex
+  hubName: hub.name
+  groupName: group
+})))
+
 // =============================================================================
 // Resources
 // =============================================================================
 
+#disable-next-line use-recent-api-versions
 resource eventHubNamespace 'Microsoft.EventHub/namespaces@2024-01-01' = {
   name: namespaceName
   location: location
@@ -94,31 +102,23 @@ resource eventHubNamespace 'Microsoft.EventHub/namespaces@2024-01-01' = {
 }
 
 // Individual Event Hubs - created via loop over the configuration array
+#disable-next-line use-recent-api-versions
 resource eventHubInstances 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01' = [
   for hub in eventHubs: {
     name: hub.name
     parent: eventHubNamespace
     properties: {
-      partitionCount: contains(hub, 'partitionCount') ? hub.partitionCount : 2
-      messageRetentionInDays: contains(hub, 'messageRetentionInDays') ? hub.messageRetentionInDays : 1
+      partitionCount: hub.?partitionCount ?? 2
+      messageRetentionInDays: hub.?messageRetentionInDays ?? 1
       status: 'Active'
     }
   }
 ]
 
 // Consumer groups - created as child resources of each Event Hub
-// Uses a flattened array to iterate over all consumer groups
-// from all Event Hubs in a single loop
+#disable-next-line use-recent-api-versions
 resource consumerGroups 'Microsoft.EventHub/namespaces/eventhubs/consumergroups@2024-01-01' = [
-  for item in flatten([
-    for (hub, hubIndex) in eventHubs: [
-      for group in (contains(hub, 'consumerGroups') ? hub.consumerGroups : []): {
-        hubIndex: hubIndex
-        hubName: hub.name
-        groupName: group
-      }
-    ]
-  ]): {
+  for item in flatConsumerGroups: {
     name: item.groupName
     parent: eventHubInstances[item.hubIndex]
     properties: {}
@@ -126,6 +126,7 @@ resource consumerGroups 'Microsoft.EventHub/namespaces/eventhubs/consumergroups@
 ]
 
 // Conditional diagnostic settings
+#disable-next-line use-recent-api-versions
 resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (enableDiagnostics && !empty(logAnalyticsWorkspaceId)) {
   name: '${namespaceName}-diag'
   scope: eventHubNamespace

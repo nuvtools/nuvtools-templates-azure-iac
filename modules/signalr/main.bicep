@@ -79,7 +79,7 @@ var signalRName = empty(name) ? autoName : name
 // Resources
 // =============================================================================
 
-resource signalRService 'Microsoft.SignalRService/signalR@2024-03-01' = {
+resource signalRService 'Microsoft.SignalRService/signalR@2024-08-01-preview' = {
   name: signalRName
   location: location
   tags: tags
@@ -140,6 +140,7 @@ resource signalRService 'Microsoft.SignalRService/signalR@2024-03-01' = {
 }
 
 // Conditional diagnostic settings
+#disable-next-line use-recent-api-versions
 resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (enableDiagnostics && !empty(logAnalyticsWorkspaceId)) {
   name: '${signalRName}-diag'
   scope: signalRService

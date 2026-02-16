@@ -196,10 +196,18 @@ param roleAssignments array = []
 param policyAssignments array = []
 
 // =============================================================================
+// Variables
+// =============================================================================
+
+// Computed RG name (must match the resource-group module's naming convention).
+// Required because scope: needs a compile-time value (BCP120).
+var resourceGroupName = '${workloadName}-rg-${environment}'
+
+// =============================================================================
 // Layer 0: Resource Group
 // =============================================================================
 
-module resourceGroup '../modules/resource-group/main.bicep' = {
+module rg '../modules/resource-group/main.bicep' = {
   name: 'deploy-resource-group'
   params: {
     workloadName: workloadName
@@ -215,7 +223,7 @@ module resourceGroup '../modules/resource-group/main.bicep' = {
 
 module virtualNetwork '../modules/virtual-network/main.bicep' = if (enableNetworking) {
   name: 'deploy-virtual-network'
-  scope: resourceGroup(resourceGroup.outputs.name)
+  scope: resourceGroup(resourceGroupName)
   params: {
     workloadName: workloadName
     environment: environment
@@ -223,30 +231,30 @@ module virtualNetwork '../modules/virtual-network/main.bicep' = if (enableNetwor
     tags: tags
     addressPrefixes: vnetAddressPrefixes
     enableDiagnostics: enableMonitoring
-    logAnalyticsWorkspaceId: enableMonitoring ? logAnalytics.outputs.id : ''
+    logAnalyticsWorkspaceId: enableMonitoring ? logAnalytics!.outputs.id : ''
   }
   dependsOn: [
-    resourceGroup
+    rg
   ]
 }
 
 @batchSize(1)
 module subnet '../modules/subnet/main.bicep' = [for (snet, i) in subnets: if (enableNetworking) {
   name: 'deploy-subnet-${i}'
-  scope: resourceGroup(resourceGroup.outputs.name)
+  scope: resourceGroup(resourceGroupName)
   params: {
-    virtualNetworkName: virtualNetwork.outputs.name
+    virtualNetworkName: virtualNetwork!.outputs.name
     subnetName: snet.name
     addressPrefix: snet.addressPrefix
-    serviceEndpoints: contains(snet, 'serviceEndpoints') ? snet.serviceEndpoints : []
-    delegations: contains(snet, 'delegations') ? snet.delegations : []
-    networkSecurityGroupId: nsg.outputs.id
+    serviceEndpoints: snet.?serviceEndpoints ?? []
+    delegations: snet.?delegations ?? []
+    networkSecurityGroupId: nsg!.outputs.id
   }
 }]
 
 module nsg '../modules/nsg/main.bicep' = if (enableNetworking) {
   name: 'deploy-nsg'
-  scope: resourceGroup(resourceGroup.outputs.name)
+  scope: resourceGroup(resourceGroupName)
   params: {
     workloadName: workloadName
     environment: environment
@@ -254,16 +262,16 @@ module nsg '../modules/nsg/main.bicep' = if (enableNetworking) {
     tags: tags
     securityRules: nsgSecurityRules
     enableDiagnostics: enableMonitoring
-    logAnalyticsWorkspaceId: enableMonitoring ? logAnalytics.outputs.id : ''
+    logAnalyticsWorkspaceId: enableMonitoring ? logAnalytics!.outputs.id : ''
   }
   dependsOn: [
-    resourceGroup
+    rg
   ]
 }
 
 module natGateway '../modules/nat-gateway/main.bicep' = if (enableNetworking && enableNatGateway) {
   name: 'deploy-nat-gateway'
-  scope: resourceGroup(resourceGroup.outputs.name)
+  scope: resourceGroup(resourceGroupName)
   params: {
     workloadName: workloadName
     environment: environment
@@ -271,21 +279,21 @@ module natGateway '../modules/nat-gateway/main.bicep' = if (enableNetworking && 
     tags: tags
   }
   dependsOn: [
-    resourceGroup
+    rg
   ]
 }
 
 module privateDnsZone '../modules/private-dns-zone/main.bicep' = [for (zone, i) in privateDnsZones: if (enableNetworking) {
   name: 'deploy-private-dns-zone-${i}'
-  scope: resourceGroup(resourceGroup.outputs.name)
+  scope: resourceGroup(resourceGroupName)
   params: {
     workloadName: workloadName
     environment: environment
     zoneName: zone.zoneName
-    virtualNetworkLinks: contains(zone, 'virtualNetworkLinks') ? zone.virtualNetworkLinks : [
+    virtualNetworkLinks: zone.?virtualNetworkLinks ?? [
       {
         name: 'link-to-vnet'
-        virtualNetworkId: virtualNetwork.outputs.id
+        virtualNetworkId: enableNetworking ? virtualNetwork!.outputs.id : ''
         registrationEnabled: false
       }
     ]
@@ -298,7 +306,7 @@ module privateDnsZone '../modules/private-dns-zone/main.bicep' = [for (zone, i) 
 
 module logAnalytics '../modules/log-analytics/main.bicep' = if (enableMonitoring) {
   name: 'deploy-log-analytics'
-  scope: resourceGroup(resourceGroup.outputs.name)
+  scope: resourceGroup(resourceGroupName)
   params: {
     workloadName: workloadName
     environment: environment
@@ -307,26 +315,26 @@ module logAnalytics '../modules/log-analytics/main.bicep' = if (enableMonitoring
     retentionInDays: logAnalyticsRetentionInDays
   }
   dependsOn: [
-    resourceGroup
+    rg
   ]
 }
 
 module appInsights '../modules/app-insights/main.bicep' = if (enableMonitoring) {
   name: 'deploy-app-insights'
-  scope: resourceGroup(resourceGroup.outputs.name)
+  scope: resourceGroup(resourceGroupName)
   params: {
     workloadName: workloadName
     environment: environment
     location: location
     tags: tags
     applicationType: appInsightsApplicationType
-    logAnalyticsWorkspaceId: logAnalytics.outputs.id
+    logAnalyticsWorkspaceId: logAnalytics!.outputs.id
   }
 }
 
 module storageAccount '../modules/storage-account/main.bicep' = if (enableMonitoring) {
   name: 'deploy-storage-account'
-  scope: resourceGroup(resourceGroup.outputs.name)
+  scope: resourceGroup(resourceGroupName)
   params: {
     workloadName: workloadName
     environment: environment
@@ -334,7 +342,7 @@ module storageAccount '../modules/storage-account/main.bicep' = if (enableMonito
     tags: tags
   }
   dependsOn: [
-    resourceGroup
+    rg
   ]
 }
 
@@ -344,7 +352,7 @@ module storageAccount '../modules/storage-account/main.bicep' = if (enableMonito
 
 module keyVault '../modules/key-vault/main.bicep' = if (enableSecurity) {
   name: 'deploy-key-vault'
-  scope: resourceGroup(resourceGroup.outputs.name)
+  scope: resourceGroup(resourceGroupName)
   params: {
     workloadName: workloadName
     environment: environment
@@ -352,10 +360,10 @@ module keyVault '../modules/key-vault/main.bicep' = if (enableSecurity) {
     tags: tags
     skuName: keyVaultSkuName
     enableDiagnostics: enableMonitoring
-    logAnalyticsWorkspaceId: enableMonitoring ? logAnalytics.outputs.id : ''
+    logAnalyticsWorkspaceId: enableMonitoring ? logAnalytics!.outputs.id : ''
   }
   dependsOn: [
-    resourceGroup
+    rg
   ]
 }
 
@@ -365,7 +373,7 @@ module keyVault '../modules/key-vault/main.bicep' = if (enableSecurity) {
 
 module sqlServer '../modules/sql-server/main.bicep' = if (enableData) {
   name: 'deploy-sql-server'
-  scope: resourceGroup(resourceGroup.outputs.name)
+  scope: resourceGroup(resourceGroupName)
   params: {
     workloadName: workloadName
     environment: environment
@@ -374,31 +382,31 @@ module sqlServer '../modules/sql-server/main.bicep' = if (enableData) {
     administratorLogin: sqlAdminLogin
     administratorPassword: sqlAdminPassword
     enableDiagnostics: enableMonitoring
-    logAnalyticsWorkspaceId: enableMonitoring ? logAnalytics.outputs.id : ''
+    logAnalyticsWorkspaceId: enableMonitoring ? logAnalytics!.outputs.id : ''
   }
   dependsOn: [
-    resourceGroup
+    rg
   ]
 }
 
 module sqlDatabase '../modules/sql-database/main.bicep' = if (enableData) {
   name: 'deploy-sql-database'
-  scope: resourceGroup(resourceGroup.outputs.name)
+  scope: resourceGroup(resourceGroupName)
   params: {
     workloadName: workloadName
     environment: environment
     location: location
     tags: tags
-    sqlServerName: sqlServer.outputs.name
+    sqlServerName: sqlServer!.outputs.name
     skuName: sqlDatabaseSkuName
     enableDiagnostics: enableMonitoring
-    logAnalyticsWorkspaceId: enableMonitoring ? logAnalytics.outputs.id : ''
+    logAnalyticsWorkspaceId: enableMonitoring ? logAnalytics!.outputs.id : ''
   }
 }
 
 module redisCache '../modules/redis-cache/main.bicep' = if (enableData) {
   name: 'deploy-redis-cache'
-  scope: resourceGroup(resourceGroup.outputs.name)
+  scope: resourceGroup(resourceGroupName)
   params: {
     workloadName: workloadName
     environment: environment
@@ -406,10 +414,10 @@ module redisCache '../modules/redis-cache/main.bicep' = if (enableData) {
     tags: tags
     skuName: redisSkuName
     enableDiagnostics: enableMonitoring
-    logAnalyticsWorkspaceId: enableMonitoring ? logAnalytics.outputs.id : ''
+    logAnalyticsWorkspaceId: enableMonitoring ? logAnalytics!.outputs.id : ''
   }
   dependsOn: [
-    resourceGroup
+    rg
   ]
 }
 
@@ -419,7 +427,7 @@ module redisCache '../modules/redis-cache/main.bicep' = if (enableData) {
 
 module containerRegistry '../modules/container-registry/main.bicep' = if (enableCompute) {
   name: 'deploy-container-registry'
-  scope: resourceGroup(resourceGroup.outputs.name)
+  scope: resourceGroup(resourceGroupName)
   params: {
     workloadName: workloadName
     environment: environment
@@ -427,16 +435,16 @@ module containerRegistry '../modules/container-registry/main.bicep' = if (enable
     tags: tags
     skuName: acrSkuName
     enableDiagnostics: enableMonitoring
-    logAnalyticsWorkspaceId: enableMonitoring ? logAnalytics.outputs.id : ''
+    logAnalyticsWorkspaceId: enableMonitoring ? logAnalytics!.outputs.id : ''
   }
   dependsOn: [
-    resourceGroup
+    rg
   ]
 }
 
 module aksCluster '../modules/kubernetes-cluster/main.bicep' = if (enableCompute && enableNetworking) {
   name: 'deploy-kubernetes-cluster'
-  scope: resourceGroup(resourceGroup.outputs.name)
+  scope: resourceGroup(resourceGroupName)
   params: {
     workloadName: workloadName
     environment: environment
@@ -445,31 +453,31 @@ module aksCluster '../modules/kubernetes-cluster/main.bicep' = if (enableCompute
     kubernetesVersion: aksKubernetesVersion
     sshPublicKey: aksSshPublicKey
     defaultNodePool: union(aksDefaultNodePool, {
-      subnetId: subnet[1].outputs.id
+      subnetId: subnet[1]!.outputs.id
     })
     enableOmsAgent: enableMonitoring
-    logAnalyticsWorkspaceId: enableMonitoring ? logAnalytics.outputs.id : ''
+    logAnalyticsWorkspaceId: enableMonitoring ? logAnalytics!.outputs.id : ''
     enableKeyVaultSecretsProvider: enableSecurity
   }
 }
 
 module bastion '../modules/bastion/main.bicep' = if (enableCompute && enableBastion && enableNetworking) {
   name: 'deploy-bastion'
-  scope: resourceGroup(resourceGroup.outputs.name)
+  scope: resourceGroup(resourceGroupName)
   params: {
     workloadName: workloadName
     environment: environment
     location: location
     tags: tags
-    subnetId: subnet[0].outputs.id
+    subnetId: subnet[0]!.outputs.id
     enableDiagnostics: enableMonitoring
-    logAnalyticsWorkspaceId: enableMonitoring ? logAnalytics.outputs.id : ''
+    logAnalyticsWorkspaceId: enableMonitoring ? logAnalytics!.outputs.id : ''
   }
 }
 
 module windowsVm '../modules/virtual-machine-windows/main.bicep' = if (enableCompute && enableWindowsVm && enableNetworking) {
   name: 'deploy-windows-vm'
-  scope: resourceGroup(resourceGroup.outputs.name)
+  scope: resourceGroup(resourceGroupName)
   params: {
     workloadName: workloadName
     environment: environment
@@ -477,7 +485,7 @@ module windowsVm '../modules/virtual-machine-windows/main.bicep' = if (enableCom
     tags: tags
     adminUsername: vmAdminUsername
     adminPassword: vmAdminPassword
-    subnetId: subnet[0].outputs.id
+    subnetId: subnet[0]!.outputs.id
   }
 }
 
@@ -487,7 +495,7 @@ module windowsVm '../modules/virtual-machine-windows/main.bicep' = if (enableCom
 
 module apiManagement '../modules/api-management/main.bicep' = if (enableMessaging && apimPublisherName != '' && apimPublisherEmail != '') {
   name: 'deploy-api-management'
-  scope: resourceGroup(resourceGroup.outputs.name)
+  scope: resourceGroup(resourceGroupName)
   params: {
     workloadName: workloadName
     environment: environment
@@ -496,58 +504,58 @@ module apiManagement '../modules/api-management/main.bicep' = if (enableMessagin
     publisherName: apimPublisherName
     publisherEmail: apimPublisherEmail
     enableDiagnostics: enableMonitoring
-    logAnalyticsWorkspaceId: enableMonitoring ? logAnalytics.outputs.id : ''
+    logAnalyticsWorkspaceId: enableMonitoring ? logAnalytics!.outputs.id : ''
   }
   dependsOn: [
-    resourceGroup
+    rg
   ]
 }
 
 module eventHub '../modules/event-hub/main.bicep' = if (enableMessaging && enableEventHub) {
   name: 'deploy-event-hub'
-  scope: resourceGroup(resourceGroup.outputs.name)
+  scope: resourceGroup(resourceGroupName)
   params: {
     workloadName: workloadName
     environment: environment
     location: location
     tags: tags
     enableDiagnostics: enableMonitoring
-    logAnalyticsWorkspaceId: enableMonitoring ? logAnalytics.outputs.id : ''
+    logAnalyticsWorkspaceId: enableMonitoring ? logAnalytics!.outputs.id : ''
   }
   dependsOn: [
-    resourceGroup
+    rg
   ]
 }
 
 module serviceBus '../modules/service-bus/main.bicep' = if (enableMessaging && enableServiceBus) {
   name: 'deploy-service-bus'
-  scope: resourceGroup(resourceGroup.outputs.name)
+  scope: resourceGroup(resourceGroupName)
   params: {
     workloadName: workloadName
     environment: environment
     location: location
     tags: tags
     enableDiagnostics: enableMonitoring
-    logAnalyticsWorkspaceId: enableMonitoring ? logAnalytics.outputs.id : ''
+    logAnalyticsWorkspaceId: enableMonitoring ? logAnalytics!.outputs.id : ''
   }
   dependsOn: [
-    resourceGroup
+    rg
   ]
 }
 
 module signalr '../modules/signalr/main.bicep' = if (enableMessaging && enableSignalR) {
   name: 'deploy-signalr'
-  scope: resourceGroup(resourceGroup.outputs.name)
+  scope: resourceGroup(resourceGroupName)
   params: {
     workloadName: workloadName
     environment: environment
     location: location
     tags: tags
     enableDiagnostics: enableMonitoring
-    logAnalyticsWorkspaceId: enableMonitoring ? logAnalytics.outputs.id : ''
+    logAnalyticsWorkspaceId: enableMonitoring ? logAnalytics!.outputs.id : ''
   }
   dependsOn: [
-    resourceGroup
+    rg
   ]
 }
 
@@ -557,13 +565,13 @@ module signalr '../modules/signalr/main.bicep' = if (enableMessaging && enableSi
 
 module roleAssignment '../modules/role-assignment/main.bicep' = [for (assignment, i) in roleAssignments: if (enableGovernance) {
   name: 'deploy-role-assignment-${i}'
-  scope: resourceGroup(resourceGroup.outputs.name)
+  scope: resourceGroup(resourceGroupName)
   params: {
     workloadName: workloadName
     environment: environment
     principalId: assignment.principalId
     roleDefinitionId: assignment.roleDefinitionId
-    principalType: contains(assignment, 'principalType') ? assignment.principalType : 'ServicePrincipal'
+    principalType: assignment.?principalType ?? 'ServicePrincipal'
   }
 }]
 
@@ -575,6 +583,7 @@ module policyAssignment '../modules/policy/main.bicep' = [for (policy, i) in pol
     location: location
     policyDefinitionId: policy.policyDefinitionId
     displayName: policy.displayName
+    identity: false
   }
 }]
 
@@ -583,22 +592,22 @@ module policyAssignment '../modules/policy/main.bicep' = [for (policy, i) in pol
 // =============================================================================
 
 @description('Name of the created Resource Group.')
-output resourceGroupName string = resourceGroup.outputs.name
+output resourceGroupName string = rg.outputs.name
 
 @description('ID of the created Resource Group.')
-output resourceGroupId string = resourceGroup.outputs.id
+output resourceGroupId string = rg.outputs.id
 
 @description('Virtual network ID (when enabled).')
-output virtualNetworkId string = enableNetworking ? virtualNetwork.outputs.id : ''
+output virtualNetworkId string = enableNetworking ? virtualNetwork!.outputs.id : ''
 
 @description('Log Analytics workspace ID (when enabled).')
-output logAnalyticsWorkspaceId string = enableMonitoring ? logAnalytics.outputs.id : ''
+output logAnalyticsWorkspaceId string = enableMonitoring ? logAnalytics!.outputs.id : ''
 
 @description('Key Vault ID (when enabled).')
-output keyVaultId string = enableSecurity ? keyVault.outputs.id : ''
+output keyVaultId string = enableSecurity ? keyVault!.outputs.id : ''
 
 @description('AKS cluster ID (when enabled).')
-output aksClusterId string = enableCompute && enableNetworking ? aksCluster.outputs.id : ''
+output aksClusterId string = enableCompute && enableNetworking ? aksCluster!.outputs.id : ''
 
 @description('AKS cluster FQDN (when enabled).')
-output aksClusterFqdn string = enableCompute && enableNetworking ? aksCluster.outputs.fqdn : ''
+output aksClusterFqdn string = enableCompute && enableNetworking ? aksCluster!.outputs.fqdn : ''

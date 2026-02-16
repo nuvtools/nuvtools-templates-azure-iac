@@ -39,8 +39,8 @@ param roleDefinitionId string
 ])
 param principalType string
 
-@description('Optional description for the role assignment.')
-param description string = ''
+@sys.description('Optional description for the role assignment.')
+param assignmentDescription string = ''
 
 // =============================================================================
 // Variables
@@ -59,7 +59,7 @@ resource roleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
     principalId: principalId
     roleDefinitionId: roleDefinitionId
     principalType: principalType
-    description: !empty(description) ? description : null
+    description: !empty(assignmentDescription) ? assignmentDescription : null
   }
 }
 

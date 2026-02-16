@@ -185,7 +185,7 @@ var ingressApplicationGatewayProfile = enableIngressApplicationGateway && !empty
 // Resources
 // =============================================================================
 
-resource aksCluster 'Microsoft.ContainerService/managedClusters@2024-02-01' = {
+resource aksCluster 'Microsoft.ContainerService/managedClusters@2024-09-01' = {
   name: aksName
   location: location
   tags: tags
@@ -216,8 +216,8 @@ resource aksCluster 'Microsoft.ContainerService/managedClusters@2024-02-01' = {
         vnetSubnetID: defaultNodePool.subnetId
         osType: 'Linux'
         mode: 'System'
-        nodeLabels: contains(defaultNodePool, 'nodeLabels') ? defaultNodePool.nodeLabels : {}
-        nodeTaints: contains(defaultNodePool, 'nodeTaints') ? defaultNodePool.nodeTaints : []
+        nodeLabels: defaultNodePool.?nodeLabels ?? {}
+        nodeTaints: defaultNodePool.?nodeTaints ?? []
         upgradeSettings: {
           maxSurge: '50%'
         }
@@ -241,6 +241,7 @@ resource aksCluster 'Microsoft.ContainerService/managedClusters@2024-02-01' = {
       }
     }
     addonProfiles: {
+      #disable-next-line BCP037
       omsagent: omsAgentProfile
       azurepolicy: {
         enabled: enableAzurePolicy

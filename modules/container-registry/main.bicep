@@ -81,7 +81,7 @@ var acrPullRoleDefinitionId = subscriptionResourceId('Microsoft.Authorization/ro
 // Resources
 // =============================================================================
 
-resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
+resource containerRegistry 'Microsoft.ContainerRegistry/registries@2025-04-01' = {
   name: containerRegistryName
   location: location
   tags: tags
@@ -110,6 +110,7 @@ resource acrPullRoleAssignments 'Microsoft.Authorization/roleAssignments@2022-04
 ]
 
 // Conditional diagnostic settings
+#disable-next-line use-recent-api-versions
 resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (enableDiagnostics && !empty(logAnalyticsWorkspaceId)) {
   name: '${containerRegistryName}-diag'
   scope: containerRegistry

@@ -209,7 +209,7 @@ var resolvedSslCertificates = [
 // =============================================================================
 
 // Public IP for the Application Gateway frontend
-resource publicIp 'Microsoft.Network/publicIPAddresses@2024-01-01' = {
+resource publicIp 'Microsoft.Network/publicIPAddresses@2024-05-01' = {
   name: publicIpName
   location: location
   tags: tags
@@ -223,14 +223,14 @@ resource publicIp 'Microsoft.Network/publicIPAddresses@2024-01-01' = {
 }
 
 // User-assigned managed identity for Key Vault access (conditional)
-resource userIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = if (createIdentity) {
+resource userIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' = if (createIdentity) {
   name: identityName
   location: location
   tags: tags
 }
 
 // Conditional WAF policy
-resource wafPolicy 'Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies@2024-01-01' = if (enableWafPolicy && skuName == 'WAF_v2') {
+resource wafPolicy 'Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies@2024-05-01' = if (enableWafPolicy && skuName == 'WAF_v2') {
   name: wafPolicyName
   location: location
   tags: tags
@@ -254,7 +254,7 @@ resource wafPolicy 'Microsoft.Network/ApplicationGatewayWebApplicationFirewallPo
 }
 
 // Application Gateway
-resource applicationGateway 'Microsoft.Network/applicationGateways@2024-01-01' = {
+resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' = {
   name: appGatewayName
   location: location
   tags: tags
@@ -307,6 +307,7 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-01-01' =
 }
 
 // Conditional diagnostic settings
+#disable-next-line use-recent-api-versions
 resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (enableDiagnostics && !empty(logAnalyticsWorkspaceId)) {
   name: '${appGatewayName}-diag'
   scope: applicationGateway
@@ -341,4 +342,4 @@ output name string = applicationGateway.name
 output publicIpAddress string = publicIp.properties.ipAddress
 
 @description('Principal ID of the user-assigned managed identity, used for Key Vault access.')
-output identityPrincipalId string = createIdentity ? userIdentity.properties.principalId : ''
+output identityPrincipalId string = createIdentity ? userIdentity!.properties.principalId : ''

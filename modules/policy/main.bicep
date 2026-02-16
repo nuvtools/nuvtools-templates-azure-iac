@@ -65,6 +65,7 @@ var policyAssignmentName = empty(name) ? autoName : name
 resource policyAssignment 'Microsoft.Authorization/policyAssignments@2024-04-01' = {
   name: policyAssignmentName
   location: identity ? location : null
+  #disable-next-line BCP187
   tags: tags
   identity: identity
     ? {

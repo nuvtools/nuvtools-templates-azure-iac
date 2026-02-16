@@ -74,7 +74,7 @@ var publicIpName = '${workloadName}-pip-bas-${environment}'
 // =============================================================================
 
 // Public IP for the Bastion Host
-resource publicIp 'Microsoft.Network/publicIPAddresses@2024-01-01' = {
+resource publicIp 'Microsoft.Network/publicIPAddresses@2024-05-01' = {
   name: publicIpName
   location: location
   tags: tags
@@ -88,7 +88,7 @@ resource publicIp 'Microsoft.Network/publicIPAddresses@2024-01-01' = {
 }
 
 // Bastion Host
-resource bastionHost 'Microsoft.Network/bastionHosts@2024-01-01' = {
+resource bastionHost 'Microsoft.Network/bastionHosts@2024-05-01' = {
   name: bastionName
   location: location
   tags: tags
@@ -118,6 +118,7 @@ resource bastionHost 'Microsoft.Network/bastionHosts@2024-01-01' = {
 }
 
 // Conditional diagnostic settings
+#disable-next-line use-recent-api-versions
 resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (enableDiagnostics && !empty(logAnalyticsWorkspaceId)) {
   name: '${bastionName}-diag'
   scope: bastionHost

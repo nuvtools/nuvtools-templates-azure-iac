@@ -67,7 +67,7 @@ var formattedSecurityRules = [for rule in securityRules: {
 // Resources
 // =============================================================================
 
-resource networkSecurityGroup 'Microsoft.Network/networkSecurityGroups@2024-01-01' = {
+resource networkSecurityGroup 'Microsoft.Network/networkSecurityGroups@2024-05-01' = {
   name: networkSecurityGroupName
   location: location
   tags: tags
@@ -76,6 +76,7 @@ resource networkSecurityGroup 'Microsoft.Network/networkSecurityGroups@2024-01-0
   }
 }
 
+#disable-next-line use-recent-api-versions
 resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (enableDiagnostics && logAnalyticsWorkspaceId != '') {
   name: '${networkSecurityGroupName}-diag'
   scope: networkSecurityGroup

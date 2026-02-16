@@ -58,7 +58,7 @@ var workspaceName = empty(name) ? autoName : name
 // Resources
 // =============================================================================
 
-resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2025-02-01' = {
   name: workspaceName
   location: location
   tags: tags
@@ -74,7 +74,7 @@ resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09
 }
 
 // Linked storage accounts - created only when provided
-resource linkedStorageAccounts 'Microsoft.OperationalInsights/workspaces/linkedStorageAccounts@2023-09-01' = if (length(linkedStorageAccountIds) > 0) {
+resource linkedStorageAccounts 'Microsoft.OperationalInsights/workspaces/linkedStorageAccounts@2025-02-01' = if (length(linkedStorageAccountIds) > 0) {
   name: 'CustomLogs'
   parent: logAnalyticsWorkspace
   properties: {

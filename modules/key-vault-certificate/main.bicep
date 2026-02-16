@@ -66,11 +66,12 @@ param tags object = {}
 // =============================================================================
 
 // Reference to the existing Key Vault
-resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+resource keyVault 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
   name: keyVaultName
 }
 
-resource certificate 'Microsoft.KeyVault/vaults/certificates@2023-07-01' = {
+#disable-next-line BCP081
+resource certificate 'Microsoft.KeyVault/vaults/certificates@2024-11-01' = {
   name: certificateName
   parent: keyVault
   tags: tags

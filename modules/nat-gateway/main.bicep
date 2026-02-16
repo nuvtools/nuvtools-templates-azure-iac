@@ -62,7 +62,7 @@ var publicIpPrefixName = '${workloadName}-ippre-${environment}'
 // =============================================================================
 
 // Public IP prefix used by the NAT Gateway
-resource publicIpPrefix 'Microsoft.Network/publicIPPrefixes@2024-01-01' = {
+resource publicIpPrefix 'Microsoft.Network/publicIPPrefixes@2024-05-01' = {
   name: publicIpPrefixName
   location: location
   tags: tags
@@ -75,7 +75,7 @@ resource publicIpPrefix 'Microsoft.Network/publicIPPrefixes@2024-01-01' = {
   }
 }
 
-resource natGateway 'Microsoft.Network/natGateways@2024-01-01' = {
+resource natGateway 'Microsoft.Network/natGateways@2024-05-01' = {
   name: natGatewayName
   location: location
   tags: tags

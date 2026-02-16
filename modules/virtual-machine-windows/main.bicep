@@ -92,7 +92,7 @@ var useStaticIp = !empty(privateIpAddress)
 // =============================================================================
 
 // Virtual machine network interface
-resource networkInterface 'Microsoft.Network/networkInterfaces@2024-01-01' = {
+resource networkInterface 'Microsoft.Network/networkInterfaces@2024-05-01' = {
   name: nicName
   location: location
   tags: tags
@@ -114,7 +114,7 @@ resource networkInterface 'Microsoft.Network/networkInterfaces@2024-01-01' = {
 }
 
 // Windows virtual machine
-resource virtualMachine 'Microsoft.Compute/virtualMachines@2024-03-01' = {
+resource virtualMachine 'Microsoft.Compute/virtualMachines@2024-07-01' = {
   name: vmName
   location: location
   tags: tags

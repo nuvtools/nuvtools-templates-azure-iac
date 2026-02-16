@@ -119,11 +119,11 @@ var resolvedSpotMaxPrice = scaleSetPriority == 'Spot' ? json('-1') : null
 // =============================================================================
 
 // Reference to the existing AKS cluster
-resource aksCluster 'Microsoft.ContainerService/managedClusters@2024-02-01' existing = {
+resource aksCluster 'Microsoft.ContainerService/managedClusters@2024-09-01' existing = {
   name: clusterName
 }
 
-resource nodePool 'Microsoft.ContainerService/managedClusters/agentPools@2024-02-01' = {
+resource nodePool 'Microsoft.ContainerService/managedClusters/agentPools@2024-09-01' = {
   name: nodePoolName
   parent: aksCluster
   properties: {

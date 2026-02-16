@@ -70,7 +70,7 @@ var namespaceName = empty(name) ? autoName : name
 // Resources
 // =============================================================================
 
-resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2022-10-01-preview' = {
+resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2024-01-01' = {
   name: namespaceName
   location: location
   tags: tags
@@ -90,34 +90,33 @@ resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2022-10-01-preview
 }
 
 // Queues - created via loop over the configuration array
-resource serviceBusQueues 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-preview' = [
+resource serviceBusQueues 'Microsoft.ServiceBus/namespaces/queues@2024-01-01' = [
   for queue in queues: {
     name: queue.name
     parent: serviceBusNamespace
     properties: {
-      maxSizeInMegabytes: contains(queue, 'maxSizeInMegabytes') ? queue.maxSizeInMegabytes : 1024
-      enablePartitioning: contains(queue, 'enablePartitioning') ? queue.enablePartitioning : false
-      deadLetteringOnMessageExpiration: contains(queue, 'deadLetteringOnExpiration')
-        ? queue.deadLetteringOnExpiration
-        : true
-      maxDeliveryCount: contains(queue, 'maxDeliveryCount') ? queue.maxDeliveryCount : 10
+      maxSizeInMegabytes: queue.?maxSizeInMegabytes ?? 1024
+      enablePartitioning: queue.?enablePartitioning ?? false
+      deadLetteringOnMessageExpiration: queue.?deadLetteringOnExpiration ?? true
+      maxDeliveryCount: queue.?maxDeliveryCount ?? 10
     }
   }
 ]
 
 // Topics - created via loop over the configuration array
-resource serviceBusTopics 'Microsoft.ServiceBus/namespaces/topics@2022-10-01-preview' = [
+resource serviceBusTopics 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = [
   for topic in topics: {
     name: topic.name
     parent: serviceBusNamespace
     properties: {
-      maxSizeInMegabytes: contains(topic, 'maxSizeInMegabytes') ? topic.maxSizeInMegabytes : 1024
-      enablePartitioning: contains(topic, 'enablePartitioning') ? topic.enablePartitioning : false
+      maxSizeInMegabytes: topic.?maxSizeInMegabytes ?? 1024
+      enablePartitioning: topic.?enablePartitioning ?? false
     }
   }
 ]
 
 // Conditional diagnostic settings
+#disable-next-line use-recent-api-versions
 resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (enableDiagnostics && !empty(logAnalyticsWorkspaceId)) {
   name: '${namespaceName}-diag'
   scope: serviceBusNamespace

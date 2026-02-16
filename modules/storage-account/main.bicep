@@ -107,7 +107,7 @@ var virtualNetworkRules = [
 // Resources
 // =============================================================================
 
-resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
+resource storageAccount 'Microsoft.Storage/storageAccounts@2025-01-01' = {
   name: storageAccountName
   location: location
   tags: tags
@@ -120,7 +120,7 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
     allowBlobPublicAccess: allowBlobPublicAccess
     minimumTlsVersion: minimumTlsVersion
     supportsHttpsTrafficOnly: true
-    networkRuleSet: {
+    networkAcls: {
       defaultAction: networkDefaultAction
       bypass: 'AzureServices, Logging, Metrics'
       virtualNetworkRules: virtualNetworkRules
@@ -130,13 +130,13 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
 }
 
 // Blob service - default resource of the storage account
-resource blobServices 'Microsoft.Storage/storageAccounts/blobServices@2023-05-01' = {
+resource blobServices 'Microsoft.Storage/storageAccounts/blobServices@2025-01-01' = {
   name: 'default'
   parent: storageAccount
 }
 
 // Optional blob containers
-resource blobContainers 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = [
+resource blobContainers 'Microsoft.Storage/storageAccounts/blobServices/containers@2025-01-01' = [
   for containerName in containers: {
     name: containerName
     parent: blobServices
@@ -147,6 +147,7 @@ resource blobContainers 'Microsoft.Storage/storageAccounts/blobServices/containe
 ]
 
 // Conditional diagnostic settings
+#disable-next-line use-recent-api-versions
 resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (enableDiagnostics && !empty(logAnalyticsWorkspaceId)) {
   name: '${storageAccountName}-diag'
   scope: storageAccount

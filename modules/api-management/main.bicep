@@ -116,7 +116,7 @@ var isVnetEnabled = virtualNetworkType != 'None'
 // Resources
 // =============================================================================
 
-resource apiManagement 'Microsoft.ApiManagement/service@2023-09-01-preview' = {
+resource apiManagement 'Microsoft.ApiManagement/service@2024-05-01' = {
   name: apimName
   location: location
   tags: tags
@@ -146,6 +146,7 @@ resource apiManagement 'Microsoft.ApiManagement/service@2023-09-01-preview' = {
 }
 
 // Conditional diagnostic settings
+#disable-next-line use-recent-api-versions
 resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (enableDiagnostics && !empty(logAnalyticsWorkspaceId)) {
   name: '${apimName}-diag'
   scope: apiManagement
