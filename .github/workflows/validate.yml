@@ -1,0 +1,77 @@
+name: Validate Bicep
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '**.bicep'
+      - '**.bicepparam'
+      - 'bicepconfig.json'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  lint-and-build:
+    name: Lint & Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure CLI Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Lint all modules
+        run: |
+          echo "Running lint on all modules..."
+          for file in modules/*/main.bicep; do
+            echo "Linting: $file"
+            az bicep lint --file "$file"
+          done
+
+      - name: Build all modules
+        run: |
+          echo "Building all modules..."
+          for file in modules/*/main.bicep; do
+            echo "Building: $file"
+            az bicep build --file "$file"
+          done
+
+      - name: Build orchestrator
+        run: az bicep build --file main.bicep
+
+      - name: Validate param files
+        run: |
+          echo "Validating parameter files..."
+          for file in environments/*.bicepparam; do
+            echo "Validating: $file"
+            az bicep build-params --file "$file"
+          done
+
+  what-if:
+    name: What-If Analysis
+    runs-on: ubuntu-latest
+    needs: lint-and-build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure CLI Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: What-If (dev)
+        run: |
+          az deployment sub what-if \
+            --location brazilsouth \
+            --template-file main.bicep \
+            --parameters environments/dev.bicepparam

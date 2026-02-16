@@ -1,0 +1,19 @@
+name: Deploy Dev
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**.bicep'
+      - '**.bicepparam'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/reusable-deploy.yml
+    with:
+      environment: dev
+    secrets: inherit
