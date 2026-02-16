@@ -9,11 +9,8 @@ This project contains **27 Bicep modules** covering over **60 Azure resource typ
 ## Project Structure
 
 ```
-nuvtools-azure-bicep-templates/
-├── main.bicep                    # Main orchestrator (targetScope = 'subscription')
-├── main.bicepparam               # Default parameters
-├── bicepconfig.json              # Strict lint rules
-├── modules/                      # 27 Bicep modules
+azure-bicep-templates/
+├── modules/                      # Reusable Bicep modules (template library)
 │   ├── resource-group/           # Resource Group
 │   ├── virtual-network/          # Virtual Network
 │   ├── subnet/                   # Subnet
@@ -41,16 +38,21 @@ nuvtools-azure-bicep-templates/
 │   ├── virtual-machine-windows/  # Windows VM + NIC
 │   ├── role-assignment/          # RBAC Assignment
 │   └── policy/                   # Azure Policy
-├── environments/                 # Parameters per environment
-│   ├── dev.bicepparam
-│   ├── staging.bicepparam
-│   └── prod.bicepparam
-└── .github/workflows/            # CI/CD GitHub Actions
-    ├── validate.yml
-    ├── reusable-deploy.yml
-    ├── deploy-dev.yml
-    ├── deploy-staging.yml
-    └── deploy-prod.yml
+├── examples/                     # Reference consumer implementation
+│   ├── main.bicep                # Example orchestrator (subscription scope)
+│   ├── main.bicepparam           # Default parameters
+│   ├── environments/             # Parameters per environment
+│   │   ├── dev.bicepparam
+│   │   ├── staging.bicepparam
+│   │   └── prod.bicepparam
+│   └── .github/workflows/        # Reference deploy workflow templates
+│       ├── reusable-deploy.yml
+│       ├── deploy-dev.yml
+│       ├── deploy-staging.yml
+│       └── deploy-prod.yml
+├── bicepconfig.json              # Shared lint rules
+└── .github/workflows/            # Repo CI
+    └── validate.yml
 ```
 
 ## Naming Convention
@@ -133,7 +135,7 @@ for file in modules/*/main.bicep; do
 done
 
 # Build the orchestrator
-az bicep build --file main.bicep
+az bicep build --file examples/main.bicep
 ```
 
 ### Deploy to the dev environment
@@ -141,8 +143,8 @@ az bicep build --file main.bicep
 ```bash
 az deployment sub create \
   --location brazilsouth \
-  --template-file main.bicep \
-  --parameters environments/dev.bicepparam
+  --template-file examples/main.bicep \
+  --parameters examples/environments/dev.bicepparam
 ```
 
 ### What-If (simulation)
@@ -150,45 +152,109 @@ az deployment sub create \
 ```bash
 az deployment sub what-if \
   --location brazilsouth \
-  --template-file main.bicep \
-  --parameters environments/dev.bicepparam
+  --template-file examples/main.bicep \
+  --parameters examples/environments/dev.bicepparam
 ```
 
-### Use a module individually
+## Examples
+
+The `examples/` folder contains a full reference implementation showing how to consume the modules. Module paths are relative to the consumer file — if your orchestrator lives in a different location, adjust the paths accordingly (e.g., `'../modules/...'` from `examples/`, or `'./modules/...'` from the repo root).
+
+### Deploy a single resource
+
+A minimal subscription-scoped file that deploys just a Resource Group:
 
 ```bicep
-// Generates the name: myapp-kv-dev
-module kv 'modules/key-vault/main.bicep' = {
-  name: 'deploy-key-vault'
-  scope: resourceGroup('my-rg')
+targetScope = 'subscription'
+
+module rg 'modules/resource-group/main.bicep' = {
+  name: 'deploy-resource-group'
   params: {
     workloadName: 'myapp'
     environment: 'dev'
     location: 'brazilsouth'
   }
 }
+```
 
-// Example with name (full override) — uses exactly the provided name
-module kv2 'modules/key-vault/main.bicep' = {
-  name: 'deploy-key-vault-custom'
+> Generated name: `myapp-rg-dev`
+
+### Compose multiple resources
+
+Deploy a Resource Group, then scope a Log Analytics workspace and a Key Vault (with diagnostics) into it. This shows module output references, implicit dependencies via `scope`, and connecting modules together:
+
+```bicep
+targetScope = 'subscription'
+
+param workloadName string = 'myapp'
+param environment string = 'dev'
+param location string = 'brazilsouth'
+
+// Layer 0 — Resource Group
+module rg 'modules/resource-group/main.bicep' = {
+  name: 'deploy-resource-group'
+  params: {
+    workloadName: workloadName
+    environment: environment
+    location: location
+  }
+}
+
+// Layer 2 — Log Analytics Workspace
+module logAnalytics 'modules/log-analytics/main.bicep' = {
+  name: 'deploy-log-analytics'
+  scope: resourceGroup(rg.outputs.name)
+  params: {
+    workloadName: workloadName
+    environment: environment
+    location: location
+    retentionInDays: 90
+  }
+}
+
+// Layer 3 — Key Vault with diagnostics
+module kv 'modules/key-vault/main.bicep' = {
+  name: 'deploy-key-vault'
+  scope: resourceGroup(rg.outputs.name)
+  params: {
+    workloadName: workloadName
+    environment: environment
+    location: location
+    enableDiagnostics: true
+    logAnalyticsWorkspaceId: logAnalytics.outputs.id
+  }
+}
+```
+
+> Generated names: `myapp-rg-dev`, `myapp-log-dev`, `myapp-kv-dev`
+
+### Override the generated name
+
+Pass the `name` parameter to use a custom name instead of the auto-generated one:
+
+```bicep
+module kv 'modules/key-vault/main.bicep' = {
+  name: 'deploy-key-vault'
   scope: resourceGroup('my-rg')
   params: {
     name: 'my-custom-keyvault-name'
     workloadName: 'myapp'
     environment: 'dev'
-    location: 'brazilsouth'
   }
 }
 ```
 
 ## CI/CD with GitHub Actions
 
-| Workflow | Trigger | Description |
-|---|---|---|
-| `validate.yml` | PR to `main` | Lint + Build + What-If |
-| `deploy-dev.yml` | Push to `main` | Automatic deploy to dev |
-| `deploy-staging.yml` | Manual | Deploy to staging |
-| `deploy-prod.yml` | Manual + Approval | Deploy to production |
+The repo includes a validation workflow that runs on PRs. Deploy workflows are provided as **reference templates** in `examples/.github/workflows/` — copy them to your repo's `.github/workflows/` to use.
+
+| Workflow | Location | Trigger | Description |
+|---|---|---|---|
+| `validate.yml` | `.github/workflows/` | PR to `main` | Lint + Build + What-If (repo CI) |
+| `deploy-dev.yml` | `examples/.github/workflows/` | Push to `main` | Automatic deploy to dev |
+| `deploy-staging.yml` | `examples/.github/workflows/` | Manual | Deploy to staging |
+| `deploy-prod.yml` | `examples/.github/workflows/` | Manual + Approval | Deploy to production |
+| `reusable-deploy.yml` | `examples/.github/workflows/` | Called by deploy workflows | Shared validate → what-if → deploy |
 
 ### Configuration
 

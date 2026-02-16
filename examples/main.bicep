@@ -199,7 +199,7 @@ param policyAssignments array = []
 // Layer 0: Resource Group
 // =============================================================================
 
-module resourceGroup 'modules/resource-group/main.bicep' = {
+module resourceGroup '../modules/resource-group/main.bicep' = {
   name: 'deploy-resource-group'
   params: {
     workloadName: workloadName
@@ -213,7 +213,7 @@ module resourceGroup 'modules/resource-group/main.bicep' = {
 // Layer 1: Networking
 // =============================================================================
 
-module virtualNetwork 'modules/virtual-network/main.bicep' = if (enableNetworking) {
+module virtualNetwork '../modules/virtual-network/main.bicep' = if (enableNetworking) {
   name: 'deploy-virtual-network'
   scope: resourceGroup(resourceGroup.outputs.name)
   params: {
@@ -231,7 +231,7 @@ module virtualNetwork 'modules/virtual-network/main.bicep' = if (enableNetworkin
 }
 
 @batchSize(1)
-module subnet 'modules/subnet/main.bicep' = [for (snet, i) in subnets: if (enableNetworking) {
+module subnet '../modules/subnet/main.bicep' = [for (snet, i) in subnets: if (enableNetworking) {
   name: 'deploy-subnet-${i}'
   scope: resourceGroup(resourceGroup.outputs.name)
   params: {
@@ -244,7 +244,7 @@ module subnet 'modules/subnet/main.bicep' = [for (snet, i) in subnets: if (enabl
   }
 }]
 
-module nsg 'modules/nsg/main.bicep' = if (enableNetworking) {
+module nsg '../modules/nsg/main.bicep' = if (enableNetworking) {
   name: 'deploy-nsg'
   scope: resourceGroup(resourceGroup.outputs.name)
   params: {
@@ -261,7 +261,7 @@ module nsg 'modules/nsg/main.bicep' = if (enableNetworking) {
   ]
 }
 
-module natGateway 'modules/nat-gateway/main.bicep' = if (enableNetworking && enableNatGateway) {
+module natGateway '../modules/nat-gateway/main.bicep' = if (enableNetworking && enableNatGateway) {
   name: 'deploy-nat-gateway'
   scope: resourceGroup(resourceGroup.outputs.name)
   params: {
@@ -275,7 +275,7 @@ module natGateway 'modules/nat-gateway/main.bicep' = if (enableNetworking && ena
   ]
 }
 
-module privateDnsZone 'modules/private-dns-zone/main.bicep' = [for (zone, i) in privateDnsZones: if (enableNetworking) {
+module privateDnsZone '../modules/private-dns-zone/main.bicep' = [for (zone, i) in privateDnsZones: if (enableNetworking) {
   name: 'deploy-private-dns-zone-${i}'
   scope: resourceGroup(resourceGroup.outputs.name)
   params: {
@@ -296,7 +296,7 @@ module privateDnsZone 'modules/private-dns-zone/main.bicep' = [for (zone, i) in 
 // Layer 2: Monitoring + Storage
 // =============================================================================
 
-module logAnalytics 'modules/log-analytics/main.bicep' = if (enableMonitoring) {
+module logAnalytics '../modules/log-analytics/main.bicep' = if (enableMonitoring) {
   name: 'deploy-log-analytics'
   scope: resourceGroup(resourceGroup.outputs.name)
   params: {
@@ -311,7 +311,7 @@ module logAnalytics 'modules/log-analytics/main.bicep' = if (enableMonitoring) {
   ]
 }
 
-module appInsights 'modules/app-insights/main.bicep' = if (enableMonitoring) {
+module appInsights '../modules/app-insights/main.bicep' = if (enableMonitoring) {
   name: 'deploy-app-insights'
   scope: resourceGroup(resourceGroup.outputs.name)
   params: {
@@ -324,7 +324,7 @@ module appInsights 'modules/app-insights/main.bicep' = if (enableMonitoring) {
   }
 }
 
-module storageAccount 'modules/storage-account/main.bicep' = if (enableMonitoring) {
+module storageAccount '../modules/storage-account/main.bicep' = if (enableMonitoring) {
   name: 'deploy-storage-account'
   scope: resourceGroup(resourceGroup.outputs.name)
   params: {
@@ -342,7 +342,7 @@ module storageAccount 'modules/storage-account/main.bicep' = if (enableMonitorin
 // Layer 3: Security
 // =============================================================================
 
-module keyVault 'modules/key-vault/main.bicep' = if (enableSecurity) {
+module keyVault '../modules/key-vault/main.bicep' = if (enableSecurity) {
   name: 'deploy-key-vault'
   scope: resourceGroup(resourceGroup.outputs.name)
   params: {
@@ -363,7 +363,7 @@ module keyVault 'modules/key-vault/main.bicep' = if (enableSecurity) {
 // Layer 4: Data
 // =============================================================================
 
-module sqlServer 'modules/sql-server/main.bicep' = if (enableData) {
+module sqlServer '../modules/sql-server/main.bicep' = if (enableData) {
   name: 'deploy-sql-server'
   scope: resourceGroup(resourceGroup.outputs.name)
   params: {
@@ -381,7 +381,7 @@ module sqlServer 'modules/sql-server/main.bicep' = if (enableData) {
   ]
 }
 
-module sqlDatabase 'modules/sql-database/main.bicep' = if (enableData) {
+module sqlDatabase '../modules/sql-database/main.bicep' = if (enableData) {
   name: 'deploy-sql-database'
   scope: resourceGroup(resourceGroup.outputs.name)
   params: {
@@ -396,7 +396,7 @@ module sqlDatabase 'modules/sql-database/main.bicep' = if (enableData) {
   }
 }
 
-module redisCache 'modules/redis-cache/main.bicep' = if (enableData) {
+module redisCache '../modules/redis-cache/main.bicep' = if (enableData) {
   name: 'deploy-redis-cache'
   scope: resourceGroup(resourceGroup.outputs.name)
   params: {
@@ -417,7 +417,7 @@ module redisCache 'modules/redis-cache/main.bicep' = if (enableData) {
 // Layer 5: Compute
 // =============================================================================
 
-module containerRegistry 'modules/container-registry/main.bicep' = if (enableCompute) {
+module containerRegistry '../modules/container-registry/main.bicep' = if (enableCompute) {
   name: 'deploy-container-registry'
   scope: resourceGroup(resourceGroup.outputs.name)
   params: {
@@ -434,7 +434,7 @@ module containerRegistry 'modules/container-registry/main.bicep' = if (enableCom
   ]
 }
 
-module aksCluster 'modules/kubernetes-cluster/main.bicep' = if (enableCompute && enableNetworking) {
+module aksCluster '../modules/kubernetes-cluster/main.bicep' = if (enableCompute && enableNetworking) {
   name: 'deploy-kubernetes-cluster'
   scope: resourceGroup(resourceGroup.outputs.name)
   params: {
@@ -453,7 +453,7 @@ module aksCluster 'modules/kubernetes-cluster/main.bicep' = if (enableCompute &&
   }
 }
 
-module bastion 'modules/bastion/main.bicep' = if (enableCompute && enableBastion && enableNetworking) {
+module bastion '../modules/bastion/main.bicep' = if (enableCompute && enableBastion && enableNetworking) {
   name: 'deploy-bastion'
   scope: resourceGroup(resourceGroup.outputs.name)
   params: {
@@ -467,7 +467,7 @@ module bastion 'modules/bastion/main.bicep' = if (enableCompute && enableBastion
   }
 }
 
-module windowsVm 'modules/virtual-machine-windows/main.bicep' = if (enableCompute && enableWindowsVm && enableNetworking) {
+module windowsVm '../modules/virtual-machine-windows/main.bicep' = if (enableCompute && enableWindowsVm && enableNetworking) {
   name: 'deploy-windows-vm'
   scope: resourceGroup(resourceGroup.outputs.name)
   params: {
@@ -485,7 +485,7 @@ module windowsVm 'modules/virtual-machine-windows/main.bicep' = if (enableComput
 // Layer 6: Integration
 // =============================================================================
 
-module apiManagement 'modules/api-management/main.bicep' = if (enableMessaging && apimPublisherName != '' && apimPublisherEmail != '') {
+module apiManagement '../modules/api-management/main.bicep' = if (enableMessaging && apimPublisherName != '' && apimPublisherEmail != '') {
   name: 'deploy-api-management'
   scope: resourceGroup(resourceGroup.outputs.name)
   params: {
@@ -503,7 +503,7 @@ module apiManagement 'modules/api-management/main.bicep' = if (enableMessaging &
   ]
 }
 
-module eventHub 'modules/event-hub/main.bicep' = if (enableMessaging && enableEventHub) {
+module eventHub '../modules/event-hub/main.bicep' = if (enableMessaging && enableEventHub) {
   name: 'deploy-event-hub'
   scope: resourceGroup(resourceGroup.outputs.name)
   params: {
@@ -519,7 +519,7 @@ module eventHub 'modules/event-hub/main.bicep' = if (enableMessaging && enableEv
   ]
 }
 
-module serviceBus 'modules/service-bus/main.bicep' = if (enableMessaging && enableServiceBus) {
+module serviceBus '../modules/service-bus/main.bicep' = if (enableMessaging && enableServiceBus) {
   name: 'deploy-service-bus'
   scope: resourceGroup(resourceGroup.outputs.name)
   params: {
@@ -535,7 +535,7 @@ module serviceBus 'modules/service-bus/main.bicep' = if (enableMessaging && enab
   ]
 }
 
-module signalr 'modules/signalr/main.bicep' = if (enableMessaging && enableSignalR) {
+module signalr '../modules/signalr/main.bicep' = if (enableMessaging && enableSignalR) {
   name: 'deploy-signalr'
   scope: resourceGroup(resourceGroup.outputs.name)
   params: {
@@ -555,7 +555,7 @@ module signalr 'modules/signalr/main.bicep' = if (enableMessaging && enableSigna
 // Layer 7: Governance
 // =============================================================================
 
-module roleAssignment 'modules/role-assignment/main.bicep' = [for (assignment, i) in roleAssignments: if (enableGovernance) {
+module roleAssignment '../modules/role-assignment/main.bicep' = [for (assignment, i) in roleAssignments: if (enableGovernance) {
   name: 'deploy-role-assignment-${i}'
   scope: resourceGroup(resourceGroup.outputs.name)
   params: {
@@ -567,7 +567,7 @@ module roleAssignment 'modules/role-assignment/main.bicep' = [for (assignment, i
   }
 }]
 
-module policyAssignment 'modules/policy/main.bicep' = [for (policy, i) in policyAssignments: if (enableGovernance) {
+module policyAssignment '../modules/policy/main.bicep' = [for (policy, i) in policyAssignments: if (enableGovernance) {
   name: 'deploy-policy-assignment-${i}'
   params: {
     workloadName: workloadName

@@ -1,3 +1,8 @@
+# =============================================================================
+# Reference workflow — copy to your repo's .github/workflows/ to use.
+# Adjust paths if your project structure differs from this example.
+# =============================================================================
+
 name: Reusable Deploy
 
 on:

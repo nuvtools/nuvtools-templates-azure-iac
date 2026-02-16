@@ -4,8 +4,9 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - '**.bicep'
-      - '**.bicepparam'
+      - 'modules/**/*.bicep'
+      - 'examples/**/*.bicep'
+      - 'examples/**/*.bicepparam'
       - 'bicepconfig.json'
 
 permissions:
@@ -44,12 +45,12 @@ jobs:
           done
 
       - name: Build orchestrator
-        run: az bicep build --file main.bicep
+        run: az bicep build --file examples/main.bicep
 
       - name: Validate param files
         run: |
           echo "Validating parameter files..."
-          for file in environments/*.bicepparam; do
+          for file in examples/environments/*.bicepparam; do
             echo "Validating: $file"
             az bicep build-params --file "$file"
           done
@@ -73,5 +74,5 @@ jobs:
         run: |
           az deployment sub what-if \
             --location brazilsouth \
-            --template-file main.bicep \
-            --parameters environments/dev.bicepparam
+            --template-file examples/main.bicep \
+            --parameters examples/environments/dev.bicepparam

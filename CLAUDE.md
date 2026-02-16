@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Modular Azure Bicep IaC templates for provisioning Azure infrastructure. The project has 27 Bicep modules covering 60+ resource types, organized in dependency layers with a main orchestrator (`main.bicep`) that targets subscription scope.
+Modular Azure Bicep IaC templates for provisioning Azure infrastructure. The project has 27 Bicep modules covering 60+ resource types, organized in dependency layers. The `examples/` folder contains a reference consumer implementation with a main orchestrator (`examples/main.bicep`) that targets subscription scope.
 
 ## Common Commands
 
@@ -19,23 +19,23 @@ for file in modules/*/main.bicep; do az bicep lint --file "$file"; done
 az bicep build --file modules/<module-name>/main.bicep
 
 # Build the orchestrator
-az bicep build --file main.bicep
+az bicep build --file examples/main.bicep
 
 # Validate parameter files
-az bicep build-params --file environments/dev.bicepparam
+az bicep build-params --file examples/environments/dev.bicepparam
 
 # What-If simulation (dry run)
-az deployment sub what-if --location brazilsouth --template-file main.bicep --parameters environments/dev.bicepparam
+az deployment sub what-if --location brazilsouth --template-file examples/main.bicep --parameters examples/environments/dev.bicepparam
 
 # Deploy to an environment
-az deployment sub create --location brazilsouth --template-file main.bicep --parameters environments/dev.bicepparam
+az deployment sub create --location brazilsouth --template-file examples/main.bicep --parameters examples/environments/dev.bicepparam
 ```
 
 Prerequisites: Azure CLI >= 2.50, Bicep CLI >= 0.24.
 
 ## Architecture
 
-### Orchestrator (`main.bicep`)
+### Orchestrator (`examples/main.bicep`)
 
 Deploys at **subscription scope** and composes all 27 modules across 8 dependency layers, each controlled by a boolean toggle:
 
@@ -66,7 +66,7 @@ Pattern: `{workloadName}-{abbreviation}-{environment}` (or without hyphens for r
 
 ### Environment Parameters
 
-Three environment configs in `environments/`:
+Three environment configs in `examples/environments/`:
 - **dev.bicepparam** — Layers 1-3 enabled, `10.10.0.0/16`
 - **staging.bicepparam** — Layers 1-5 enabled, `10.20.0.0/16`
 - **prod.bicepparam** — All layers enabled, `10.30.0.0/16`
@@ -77,10 +77,11 @@ Three environment configs in `environments/`:
 
 ## CI/CD (GitHub Actions)
 
-- **validate.yml** — Runs on PR to `main`: lints all modules, builds, validates params, runs what-if
-- **deploy-dev.yml** — Auto-deploys on push to `main` (only `*.bicep`/`*.bicepparam` changes)
-- **deploy-staging.yml** / **deploy-prod.yml** — Manual dispatch; prod requires approval
-- **reusable-deploy.yml** — Shared workflow: validate → what-if → deploy (one deployment per environment via concurrency)
+- **`.github/workflows/validate.yml`** — Repo CI: runs on PR to `main`, lints all modules, builds, validates params, runs what-if
+- **`examples/.github/workflows/`** — Reference deploy workflow templates (consumers copy these to their own `.github/workflows/`):
+  - **deploy-dev.yml** — Auto-deploys on push to `main` (only `*.bicep`/`*.bicepparam` changes)
+  - **deploy-staging.yml** / **deploy-prod.yml** — Manual dispatch; prod requires approval
+  - **reusable-deploy.yml** — Shared workflow: validate → what-if → deploy (one deployment per environment via concurrency)
 
 Authentication uses OIDC with secrets `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`.
 
@@ -90,5 +91,5 @@ Authentication uses OIDC with secrets `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZU
 2. Use the CAF naming variable pattern: `var autoName = '${workloadName}-<abbr>-${environment}'` and `var resourceName = empty(name) ? autoName : name`
 3. Output at minimum `id` and `name`
 4. Add a `modules/<resource-name>/README.md` with usage examples and parameter table
-5. Wire the module into `main.bicep` under the appropriate layer with the correct `dependsOn`
-6. Add relevant parameters to the environment `.bicepparam` files
+5. Wire the module into `examples/main.bicep` under the appropriate layer with the correct `dependsOn`
+6. Add relevant parameters to the `examples/environments/*.bicepparam` files
