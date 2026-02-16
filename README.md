@@ -123,7 +123,7 @@ The orchestrator organizes the modules into 8 layers:
 ### Prerequisites
 
 - [Azure CLI](https://docs.microsoft.com/cli/azure/install-azure-cli) >= 2.50
-- [Bicep CLI](https://learn.microsoft.com/azure/azure-resource-manager/bicep/install) >= 0.24
+- [Bicep CLI](https://learn.microsoft.com/azure/azure-resource-manager/bicep/install) >= 0.26
 - Azure subscription with Contributor permissions
 
 ### Validate the templates
@@ -181,7 +181,7 @@ module rg 'modules/resource-group/main.bicep' = {
 
 ### Compose multiple resources
 
-Deploy a Resource Group, then scope a Log Analytics workspace and a Key Vault (with diagnostics) into it. This shows module output references, implicit dependencies via `scope`, and connecting modules together:
+Deploy a Resource Group, then scope a Log Analytics workspace and a Key Vault (with diagnostics) into it. The `scope:` property requires a compile-time value, so we compute the resource group name from the same naming convention the module uses:
 
 ```bicep
 targetScope = 'subscription'
@@ -189,6 +189,9 @@ targetScope = 'subscription'
 param workloadName string = 'myapp'
 param environment string = 'dev'
 param location string = 'brazilsouth'
+
+// Compile-time RG name (must match the resource-group module's naming pattern)
+var resourceGroupName = '${workloadName}-rg-${environment}'
 
 // Layer 0 — Resource Group
 module rg 'modules/resource-group/main.bicep' = {
@@ -203,7 +206,8 @@ module rg 'modules/resource-group/main.bicep' = {
 // Layer 2 — Log Analytics Workspace
 module logAnalytics 'modules/log-analytics/main.bicep' = {
   name: 'deploy-log-analytics'
-  scope: resourceGroup(rg.outputs.name)
+  scope: resourceGroup(resourceGroupName)
+  dependsOn: [rg]
   params: {
     workloadName: workloadName
     environment: environment
@@ -215,7 +219,8 @@ module logAnalytics 'modules/log-analytics/main.bicep' = {
 // Layer 3 — Key Vault with diagnostics
 module kv 'modules/key-vault/main.bicep' = {
   name: 'deploy-key-vault'
-  scope: resourceGroup(rg.outputs.name)
+  scope: resourceGroup(resourceGroupName)
+  dependsOn: [rg]
   params: {
     workloadName: workloadName
     environment: environment

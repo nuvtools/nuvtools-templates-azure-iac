@@ -31,7 +31,7 @@ az deployment sub what-if --location brazilsouth --template-file examples/main.b
 az deployment sub create --location brazilsouth --template-file examples/main.bicep --parameters examples/environments/dev.bicepparam
 ```
 
-Prerequisites: Azure CLI >= 2.50, Bicep CLI >= 0.24.
+Prerequisites: Azure CLI >= 2.50, Bicep CLI >= 0.26.
 
 ## Architecture
 
