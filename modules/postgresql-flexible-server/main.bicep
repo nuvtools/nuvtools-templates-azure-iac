@@ -6,8 +6,8 @@
 // ---------------------------------------------------------------------------
 
 metadata name = 'PostgreSQL Flexible Server'
-metadata description = 'Module for creating an Azure Database for PostgreSQL Flexible Server with configurable SKU, storage, backup, high availability, network access and diagnostics following configurable naming conventions.'
-metadata version = '1.0.0'
+metadata description = 'Module for creating an Azure Database for PostgreSQL Flexible Server with configurable SKU, storage, backup, high availability, network access, password and/or Entra ID (managed identity) authentication and diagnostics following configurable naming conventions.'
+metadata version = '1.1.0'
 
 // =============================================================================
 // Parameters
@@ -33,12 +33,35 @@ param tags object = {
   Environment: environment
 }
 
-@description('PostgreSQL administrator login.')
-param administratorLogin string
+@description('PostgreSQL administrator login. Required when password authentication is enabled; ignored otherwise.')
+param administratorLogin string = ''
 
-@description('PostgreSQL administrator password.')
+@description('PostgreSQL administrator password. Required when password authentication is enabled; ignored otherwise.')
 @secure()
-param administratorPassword string
+param administratorPassword string = ''
+
+@description('Enables password (SQL) authentication. Disable to make the server Entra-only (passwordless).')
+@allowed([
+  'Enabled'
+  'Disabled'
+])
+// Not a secret: an auth-mode toggle that mirrors the server's authConfig.passwordAuth property.
+#disable-next-line secure-secrets-in-params
+param passwordAuth string = 'Enabled'
+
+@description('Enables Microsoft Entra ID (Azure AD) authentication. Enable for managed-identity / passwordless access.')
+@allowed([
+  'Enabled'
+  'Disabled'
+])
+param activeDirectoryAuth string = 'Disabled'
+
+@description('Entra ID tenant used for Entra authentication. Defaults to the deployment tenant. Used only when activeDirectoryAuth is Enabled.')
+param entraTenantId string = tenant().tenantId
+
+@description('''Entra ID administrators to register on the server (users, groups or service principals / managed identities).
+Each item: { objectId: <principal object id>, principalName: <display name or UPN>, principalType: 'User' | 'Group' | 'ServicePrincipal', tenantId?: <override> }.''')
+param entraAdministrators array = []
 
 @description('Major PostgreSQL engine version.')
 @allowed([
@@ -156,8 +179,13 @@ resource postgresqlServer 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01'
     tier: skuTier
   }
   properties: {
-    administratorLogin: administratorLogin
-    administratorLoginPassword: administratorPassword
+    authConfig: {
+      activeDirectoryAuth: activeDirectoryAuth
+      passwordAuth: passwordAuth
+      tenantId: activeDirectoryAuth == 'Enabled' ? entraTenantId : null
+    }
+    administratorLogin: passwordAuth == 'Enabled' ? administratorLogin : null
+    administratorLoginPassword: passwordAuth == 'Enabled' ? administratorPassword : null
     version: postgresqlVersion
     availabilityZone: availabilityZone
     storage: {
@@ -200,6 +228,21 @@ resource customFirewallRules 'Microsoft.DBforPostgreSQL/flexibleServers/firewall
     properties: {
       startIpAddress: rule.startIpAddress
       endIpAddress: rule.endIpAddress
+    }
+  }
+]
+
+// Entra ID administrators (users, groups, managed identities). Created one at a time
+// because the flexible server only accepts a single administrator operation concurrently.
+@batchSize(1)
+resource entraAdmins 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2024-08-01' = [
+  for admin in entraAdministrators: {
+    name: admin.objectId
+    parent: postgresqlServer
+    properties: {
+      principalType: admin.principalType
+      principalName: admin.principalName
+      tenantId: admin.?tenantId ?? entraTenantId
     }
   }
 ]

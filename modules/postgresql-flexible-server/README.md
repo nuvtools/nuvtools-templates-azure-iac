@@ -16,6 +16,16 @@ The module supports the two Flexible Server connectivity methods:
 - **Public access** (default): set `publicNetworkAccess` to `Enabled` or `Disabled` and optionally add firewall rules via `allowAzureServices` / `firewallRules`.
 - **Private access (VNet integration)**: provide `delegatedSubnetResourceId` (a subnet delegated to `Microsoft.DBforPostgreSQL/flexibleServers`) and `privateDnsZoneArmResourceId`. When a delegated subnet is provided, the server is created with private access and firewall rules are ignored.
 
+## Authentication
+
+The module supports password authentication, Microsoft Entra ID (Azure AD) authentication, or both:
+
+- **Password (default)**: `passwordAuth` defaults to `Enabled`. Provide `administratorLogin` and `administratorPassword`.
+- **Entra ID / managed identity (passwordless)**: set `activeDirectoryAuth` to `Enabled` and register principals through `entraAdministrators`. Each entry is `{ objectId, principalName, principalType }`, where `principalType` is `User`, `Group` or `ServicePrincipal` (use `ServicePrincipal` for a managed identity, passing its **principal/object id**). An optional `tenantId` per entry overrides `entraTenantId`.
+- **Entra-only**: combine `activeDirectoryAuth: 'Enabled'` with `passwordAuth: 'Disabled'`. When password auth is disabled, `administratorLogin` / `administratorPassword` are ignored and may be omitted.
+
+> Registering an Entra administrator only creates the *server-level* admin. Application managed identities still need a database role created in-engine (e.g. via `pgaadauth_create_principal`) and the relevant grants — a one-time data-plane step outside this module.
+
 ## Usage
 
 ### Public access
@@ -61,6 +71,32 @@ module postgresqlServer 'modules/postgresql-flexible-server/main.bicep' = {
 }
 ```
 
+### Entra ID only (passwordless / managed identity)
+
+```bicep
+module postgresqlServer 'modules/postgresql-flexible-server/main.bicep' = {
+  name: 'deploy-postgresql-server'
+  scope: resourceGroup('my-rg')
+  params: {
+    workloadName: 'myapp'
+    environment: 'prod'
+    skuName: 'Standard_D2s_v3'
+    skuTier: 'GeneralPurpose'
+    storageSizeGB: 128
+    // Passwordless: Entra on, password off (administratorLogin/Password omitted)
+    activeDirectoryAuth: 'Enabled'
+    passwordAuth: 'Disabled'
+    entraAdministrators: [
+      {
+        objectId: identity.outputs.principalId // managed identity principal/object id
+        principalName: 'myapp-id-prod'
+        principalType: 'ServicePrincipal'
+      }
+    ]
+  }
+}
+```
+
 ## Parameters
 
 | Parameter | Type | Default | Description |
@@ -70,8 +106,12 @@ module postgresqlServer 'modules/postgresql-flexible-server/main.bicep' = {
 | `environment` | `string` | *(required)* | Deployment environment. Accepts any string (e.g., `dev`, `uat`, `hml`, `staging`, `prod`). |
 | `location` | `string` | `'brazilsouth'` | Azure region where the resource will be created. |
 | `tags` | `object` | `{ ManagedBy: 'Bicep', Environment: environment }` | Tags to be applied to the resource. |
-| `administratorLogin` | `string` | *(required)* | PostgreSQL administrator login. |
-| `administratorPassword` | `string` (secure) | *(required)* | PostgreSQL administrator password. |
+| `administratorLogin` | `string` | `''` | PostgreSQL administrator login. Required when `passwordAuth` is `Enabled`; ignored otherwise. |
+| `administratorPassword` | `string` (secure) | `''` | PostgreSQL administrator password. Required when `passwordAuth` is `Enabled`; ignored otherwise. |
+| `passwordAuth` | `string` | `'Enabled'` | Enables password (SQL) authentication. Allowed: `Enabled`, `Disabled`. Set `Disabled` for Entra-only. |
+| `activeDirectoryAuth` | `string` | `'Disabled'` | Enables Microsoft Entra ID authentication. Allowed: `Enabled`, `Disabled`. |
+| `entraTenantId` | `string` | `tenant().tenantId` | Entra tenant used for Entra authentication. Used only when `activeDirectoryAuth` is `Enabled`. |
+| `entraAdministrators` | `array` | `[]` | Entra administrators to register. Each item: `{ objectId, principalName, principalType, tenantId? }`. `principalType`: `User`, `Group` or `ServicePrincipal`. |
 | `postgresqlVersion` | `string` | `'16'` | Major PostgreSQL engine version. Allowed: `13`, `14`, `15`, `16`, `17`. |
 | `skuName` | `string` | `'Standard_B1ms'` | Compute SKU name (e.g., `Standard_B1ms`, `Standard_D2s_v3`, `Standard_E2ds_v5`). |
 | `skuTier` | `string` | `'Burstable'` | Compute SKU tier. Allowed: `Burstable`, `GeneralPurpose`, `MemoryOptimized`. |
