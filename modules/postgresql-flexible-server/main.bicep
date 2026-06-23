@@ -47,8 +47,9 @@ param administratorPassword string
   '15'
   '16'
   '17'
+  '18'
 ])
-param postgresqlVersion string = '16'
+param postgresqlVersion string = '18'
 
 @description('Compute SKU name (e.g., Standard_B1ms, Standard_D2s_v3, Standard_E2ds_v5).')
 param skuName string = 'Standard_B1ms'
