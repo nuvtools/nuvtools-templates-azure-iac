@@ -4,7 +4,7 @@ Collection of modular and reusable Azure Bicep templates for infrastructure prov
 
 ## Overview
 
-This project contains **27 Bicep modules** covering over **60 Azure resource types**, organized in dependency layers with a main orchestrator that composes all modules.
+This project contains **29 Bicep modules** covering over **60 Azure resource types**, organized in dependency layers with a main orchestrator that composes all modules.
 
 ## Project Structure
 
@@ -25,6 +25,8 @@ nuvtools-templates-azure-iac/
 │   ├── nat-gateway/                  # NAT Gateway + PIP Prefix
 │   ├── nsg/                          # Network Security Group
 │   ├── policy/                       # Azure Policy
+│   ├── postgresql-database/          # PostgreSQL Database
+│   ├── postgresql-flexible-server/   # PostgreSQL Flexible Server
 │   ├── private-dns-zone/             # Private DNS + VNet links
 │   ├── private-endpoint/             # Generic Private Endpoint
 │   ├── redis-cache/                  # Redis Cache
@@ -90,6 +92,8 @@ All resources follow the pattern: **`{workloadName}-{abbreviation}-{environment}
 | AKS | `aks` | `{workloadName}-aks-{env}` | `myapp-aks-dev` |
 | SQL Server | `sql` | `{workloadName}-sql-{env}` | `myapp-sql-dev` |
 | SQL Database | `sqldb` | `{workloadName}-sqldb-{env}` | `myapp-sqldb-dev` |
+| PostgreSQL Flexible Server | `psql` | `{workloadName}-psql-{env}` | `myapp-psql-dev` |
+| PostgreSQL Database | `psqldb` | `{workloadName}-psqldb-{env}` | `myapp-psqldb-dev` |
 | Log Analytics | `log` | `{workloadName}-log-{env}` | `myapp-log-dev` |
 | App Insights | `appi` | `{workloadName}-appi-{env}` | `myapp-appi-dev` |
 | App Gateway | `agw` | `{workloadName}-agw-{env}` | `myapp-agw-dev` |
@@ -118,7 +122,7 @@ The orchestrator organizes the modules into 8 layers:
 | 1 | VNet, Subnets, NSG, NAT Gateway, Private DNS | `enableNetworking` |
 | 2 | Log Analytics, App Insights, Storage Account | `enableMonitoring` |
 | 3 | Key Vault, Certificates | `enableSecurity` |
-| 4 | SQL Server, SQL Database, Redis Cache | `enableData` |
+| 4 | SQL Server, SQL Database, Redis Cache, PostgreSQL | `enableData` |
 | 5 | ACR, AKS, Node Pool, App Gateway, Bastion, VM | `enableCompute` |
 | 6 | API Management, Event Hub, Service Bus, SignalR | `enableMessaging` |
 | 7 | Role Assignments, Policies | `enableGovernance` |

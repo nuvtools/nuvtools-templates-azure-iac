@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Modular Azure Bicep IaC templates for provisioning Azure infrastructure. The project has 27 Bicep modules covering 60+ resource types, organized in dependency layers. The `examples/` folder contains a reference consumer implementation with a main orchestrator (`examples/main.bicep`) that targets subscription scope.
+Modular Azure Bicep IaC templates for provisioning Azure infrastructure. The project has 29 Bicep modules covering 60+ resource types, organized in dependency layers. The `examples/` folder contains a reference consumer implementation with a main orchestrator (`examples/main.bicep`) that targets subscription scope.
 
 ## Common Commands
 
@@ -45,7 +45,7 @@ Deploys at **subscription scope** and composes all 27 modules across 8 dependenc
 | 1 | `enableNetworking` | VNet, Subnets, NSG, NAT Gateway, Private DNS |
 | 2 | `enableMonitoring` | Log Analytics, App Insights, Storage Account |
 | 3 | `enableSecurity` | Key Vault, Certificates |
-| 4 | `enableData` | SQL Server, SQL Database, Redis Cache |
+| 4 | `enableData` | SQL Server, SQL Database, Redis Cache, PostgreSQL Flexible Server, PostgreSQL Database |
 | 5 | `enableCompute` | ACR, AKS, Node Pool, App Gateway, Bastion, VM |
 | 6 | `enableMessaging` | API Management, Event Hub, Service Bus, SignalR |
 | 7 | `enableGovernance` | Role Assignments, Policies |

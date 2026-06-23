@@ -1,6 +1,6 @@
 // =============================================================================
 // Azure Bicep Templates - Main Orchestrator
-// Composes all 27 modules in dependency layers with enable toggles.
+// Composes all 29 modules in dependency layers with enable toggles.
 // Scope: subscription (creates Resource Groups and child resources)
 // =============================================================================
 
@@ -44,7 +44,7 @@ param enableMonitoring bool = true
 @description('Enables security resources (Key Vault, certificates).')
 param enableSecurity bool = true
 
-@description('Enables data resources (SQL Server, SQL Database, Redis Cache).')
+@description('Enables data resources (SQL Server, SQL Database, Redis Cache, PostgreSQL).')
 param enableData bool = false
 
 @description('Enables compute resources (ACR, AKS, App Gateway, Bastion, Windows VM).')
@@ -121,6 +121,29 @@ param sqlDatabaseSkuName string = 'GP_S_Gen5_1'
 @description('Redis Cache SKU.')
 @allowed(['Basic', 'Standard', 'Premium'])
 param redisSkuName string = 'Standard'
+
+@description('Enables Azure Database for PostgreSQL Flexible Server (and its database).')
+param enablePostgresql bool = false
+
+@description('PostgreSQL administrator login.')
+param postgresqlAdminLogin string = 'pgadmin'
+
+@description('PostgreSQL administrator password.')
+@secure()
+param postgresqlAdminPassword string = ''
+
+@description('Major PostgreSQL engine version.')
+param postgresqlVersion string = '16'
+
+@description('PostgreSQL compute SKU name.')
+param postgresqlSkuName string = 'Standard_B1ms'
+
+@description('PostgreSQL compute SKU tier.')
+@allowed(['Burstable', 'GeneralPurpose', 'MemoryOptimized'])
+param postgresqlSkuTier string = 'Burstable'
+
+@description('PostgreSQL allocated storage size in GB.')
+param postgresqlStorageSizeGB int = 32
 
 // =============================================================================
 // Compute Parameters
@@ -421,6 +444,38 @@ module redisCache '../modules/redis-cache/main.bicep' = if (enableData) {
   ]
 }
 
+module postgresqlServer '../modules/postgresql-flexible-server/main.bicep' = if (enableData && enablePostgresql) {
+  name: 'deploy-postgresql-server'
+  scope: resourceGroup(resourceGroupName)
+  params: {
+    workloadName: workloadName
+    environment: environment
+    location: location
+    tags: tags
+    administratorLogin: postgresqlAdminLogin
+    administratorPassword: postgresqlAdminPassword
+    postgresqlVersion: postgresqlVersion
+    skuName: postgresqlSkuName
+    skuTier: postgresqlSkuTier
+    storageSizeGB: postgresqlStorageSizeGB
+    enableDiagnostics: enableMonitoring
+    logAnalyticsWorkspaceId: enableMonitoring ? logAnalytics!.outputs.id : ''
+  }
+  dependsOn: [
+    rg
+  ]
+}
+
+module postgresqlDatabase '../modules/postgresql-database/main.bicep' = if (enableData && enablePostgresql) {
+  name: 'deploy-postgresql-database'
+  scope: resourceGroup(resourceGroupName)
+  params: {
+    workloadName: workloadName
+    environment: environment
+    postgresqlServerName: postgresqlServer!.outputs.name
+  }
+}
+
 // =============================================================================
 // Layer 5: Compute
 // =============================================================================
@@ -605,6 +660,9 @@ output logAnalyticsWorkspaceId string = enableMonitoring ? logAnalytics!.outputs
 
 @description('Key Vault ID (when enabled).')
 output keyVaultId string = enableSecurity ? keyVault!.outputs.id : ''
+
+@description('PostgreSQL Flexible Server FQDN (when enabled).')
+output postgresqlServerFqdn string = enableData && enablePostgresql ? postgresqlServer!.outputs.fullyQualifiedDomainName : ''
 
 @description('AKS cluster ID (when enabled).')
 output aksClusterId string = enableCompute && enableNetworking ? aksCluster!.outputs.id : ''

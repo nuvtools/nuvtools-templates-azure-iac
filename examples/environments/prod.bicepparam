@@ -53,6 +53,12 @@ param keyVaultSkuName = 'premium'
 param sqlAdminLogin = 'sqladmin'
 param sqlDatabaseSkuName = 'GP_Gen5_2'
 param redisSkuName = 'Premium'
+param enablePostgresql = true
+param postgresqlAdminLogin = 'pgadmin'
+param postgresqlVersion = '16'
+param postgresqlSkuName = 'Standard_D2s_v3'
+param postgresqlSkuTier = 'GeneralPurpose'
+param postgresqlStorageSizeGB = 128
 
 // Compute
 param acrSkuName = 'Premium'

@@ -47,6 +47,11 @@ param keyVaultSkuName = 'standard'
 param sqlAdminLogin = 'sqladmin'
 param sqlDatabaseSkuName = 'GP_S_Gen5_1'
 param redisSkuName = 'Standard'
+param enablePostgresql = true
+param postgresqlAdminLogin = 'pgadmin'
+param postgresqlSkuName = 'Standard_B1ms'
+param postgresqlSkuTier = 'Burstable'
+param postgresqlStorageSizeGB = 32
 
 // Compute
 param acrSkuName = 'Standard'
