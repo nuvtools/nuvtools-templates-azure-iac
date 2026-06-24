@@ -70,7 +70,10 @@ var namespaceName = empty(name) ? autoName : name
 // Resources
 // =============================================================================
 
-resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2026-01-01' = {
+// Pinned to 2024-01-01 — the newest GA the Service Bus resource provider actually accepts
+// (2025-05-01 is preview; 2026-01-01 exists in the Bicep type index but is not yet registered in ARM).
+#disable-next-line use-recent-api-versions
+resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2024-01-01' = {
   name: namespaceName
   location: location
   tags: tags
@@ -90,7 +93,8 @@ resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2026-01-01' = {
 }
 
 // Queues - created via loop over the configuration array
-resource serviceBusQueues 'Microsoft.ServiceBus/namespaces/queues@2026-01-01' = [
+#disable-next-line use-recent-api-versions
+resource serviceBusQueues 'Microsoft.ServiceBus/namespaces/queues@2024-01-01' = [
   for queue in queues: {
     name: queue.name
     parent: serviceBusNamespace
@@ -104,7 +108,8 @@ resource serviceBusQueues 'Microsoft.ServiceBus/namespaces/queues@2026-01-01' = 
 ]
 
 // Topics - created via loop over the configuration array
-resource serviceBusTopics 'Microsoft.ServiceBus/namespaces/topics@2026-01-01' = [
+#disable-next-line use-recent-api-versions
+resource serviceBusTopics 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = [
   for topic in topics: {
     name: topic.name
     parent: serviceBusNamespace
