@@ -51,6 +51,7 @@ module api 'modules/web-app/main.bicep' = {
 | `keyVaultReferenceIdentityId` | `string` | `''` | Resource ID of the identity used to resolve Key Vault references. Empty uses the system-assigned identity. |
 | `appSettings` | `array` | `[]` | Application settings as `{ name, value }` objects. Values may be Key Vault references. |
 | `healthCheckPath` | `string` | `''` | Relative health-check path (e.g., `/health`). Empty disables the health check. |
+| `appCommandLine` | `string` | `''` | Explicit startup command (e.g., `dotnet MyApp.dll`). Empty lets the platform auto-detect the entry point. |
 | `minTlsVersion` | `string` | `'1.2'` | Minimum TLS version accepted by the app. Allowed: `1.0`, `1.1`, `1.2`. |
 | `ftpsState` | `string` | `'Disabled'` | FTP/FTPS publishing state. Allowed: `AllAllowed`, `FtpsOnly`, `Disabled`. |
 
