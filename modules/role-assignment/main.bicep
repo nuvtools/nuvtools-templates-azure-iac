@@ -49,6 +49,12 @@ param assignmentDescription string = ''
 // Generates a deterministic GUID based on parameters to ensure idempotency
 var roleAssignmentName = guid(workloadName, environment, principalId, roleDefinitionId)
 
+// ARM requires a fully-qualified role definition resource ID. Accept either a bare built-in role
+// GUID (construct the subscription-scoped ID) or an already-full resource ID (use as-is).
+var roleDefinitionResourceId = startsWith(roleDefinitionId, '/')
+  ? roleDefinitionId
+  : subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitionId)
+
 // =============================================================================
 // Resources
 // =============================================================================
@@ -57,7 +63,7 @@ resource roleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: roleAssignmentName
   properties: {
     principalId: principalId
-    roleDefinitionId: roleDefinitionId
+    roleDefinitionId: roleDefinitionResourceId
     principalType: principalType
     description: !empty(assignmentDescription) ? assignmentDescription : null
   }
