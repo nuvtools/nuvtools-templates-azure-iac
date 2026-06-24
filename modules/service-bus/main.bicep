@@ -46,7 +46,7 @@ param skuCapacity int = 1
 @description('Enables zone redundancy for the namespace. Applicable only to the Premium SKU.')
 param zoneRedundant bool = false
 
-@description('List of queues to be created. Each object must contain: name (string), maxSizeInMegabytes (int, default 1024), enablePartitioning (bool, default false), requiresSession (bool, default false), deadLetteringOnExpiration (bool, default true) and maxDeliveryCount (int, default 10).')
+@description('List of queues to be created. Each object accepts: name (string), maxSizeInMegabytes (int, default 1024), enablePartitioning (bool, default false), requiresSession (bool, default false), deadLetteringOnExpiration (bool, default true), maxDeliveryCount (int, default 10), lockDuration (ISO 8601 duration, e.g. PT4M), defaultMessageTimeToLive (ISO 8601 duration, e.g. P14D), requiresDuplicateDetection (bool) and duplicateDetectionHistoryTimeWindow (ISO 8601 duration, e.g. PT5M). Omitted optional values fall back to the Service Bus defaults. Note: requiresDuplicateDetection and requiresSession are immutable after creation.')
 param queues array = []
 
 @description('List of topics to be created. Each object must contain: name (string), maxSizeInMegabytes (int, default 1024) and enablePartitioning (bool, default false).')
@@ -104,6 +104,11 @@ resource serviceBusQueues 'Microsoft.ServiceBus/namespaces/queues@2024-01-01' = 
       requiresSession: queue.?requiresSession ?? false
       deadLetteringOnMessageExpiration: queue.?deadLetteringOnExpiration ?? true
       maxDeliveryCount: queue.?maxDeliveryCount ?? 10
+      // Optional values omitted from the input fall back to the Service Bus defaults.
+      lockDuration: queue.?lockDuration
+      defaultMessageTimeToLive: queue.?defaultMessageTimeToLive
+      requiresDuplicateDetection: queue.?requiresDuplicateDetection
+      duplicateDetectionHistoryTimeWindow: queue.?duplicateDetectionHistoryTimeWindow
     }
   }
 ]
