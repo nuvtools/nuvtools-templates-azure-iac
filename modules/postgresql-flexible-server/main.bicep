@@ -107,6 +107,9 @@ param storageSizeGB int = 32
 ])
 param storageAutoGrow string = 'Enabled'
 
+@description('Storage performance tier (premium SSD IOPS tier, e.g. P4, P6, P10, P15...). Empty uses the default tier for the chosen size. Auto-grow must be Disabled to set a custom tier.')
+param storageTier string = ''
+
 @description('Number of days to retain backups.')
 @minValue(7)
 @maxValue(35)
@@ -191,6 +194,7 @@ resource postgresqlServer 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01'
     storage: {
       storageSizeGB: storageSizeGB
       autoGrow: storageAutoGrow
+      tier: empty(storageTier) ? null : storageTier
     }
     backup: {
       backupRetentionDays: backupRetentionDays
