@@ -70,7 +70,7 @@ var namespaceName = empty(name) ? autoName : name
 // Resources
 // =============================================================================
 
-resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2024-01-01' = {
+resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2026-01-01' = {
   name: namespaceName
   location: location
   tags: tags
@@ -90,7 +90,7 @@ resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2024-01-01' = {
 }
 
 // Queues - created via loop over the configuration array
-resource serviceBusQueues 'Microsoft.ServiceBus/namespaces/queues@2024-01-01' = [
+resource serviceBusQueues 'Microsoft.ServiceBus/namespaces/queues@2026-01-01' = [
   for queue in queues: {
     name: queue.name
     parent: serviceBusNamespace
@@ -104,7 +104,7 @@ resource serviceBusQueues 'Microsoft.ServiceBus/namespaces/queues@2024-01-01' = 
 ]
 
 // Topics - created via loop over the configuration array
-resource serviceBusTopics 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = [
+resource serviceBusTopics 'Microsoft.ServiceBus/namespaces/topics@2026-01-01' = [
   for topic in topics: {
     name: topic.name
     parent: serviceBusNamespace
