@@ -69,6 +69,9 @@ param appSettings array = []
 @description('Relative health-check path (e.g., /health). Empty disables the health check.')
 param healthCheckPath string = ''
 
+@description('Explicit startup command (e.g., dotnet MyApp.dll). Empty lets the platform auto-detect the entry point.')
+param appCommandLine string = ''
+
 @description('Minimum TLS version accepted by the app.')
 @allowed([
   '1.0'
@@ -125,6 +128,7 @@ resource webApp 'Microsoft.Web/sites@2024-11-01' = {
     virtualNetworkSubnetId: empty(virtualNetworkSubnetId) ? null : virtualNetworkSubnetId
     siteConfig: {
       linuxFxVersion: linux && !empty(linuxFxVersion) ? linuxFxVersion : null
+      appCommandLine: empty(appCommandLine) ? null : appCommandLine
       alwaysOn: alwaysOn
       vnetRouteAllEnabled: empty(virtualNetworkSubnetId) ? false : vnetRouteAllEnabled
       ftpsState: ftpsState
