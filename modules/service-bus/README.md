@@ -19,6 +19,7 @@ module serviceBus 'modules/service-bus/main.bicep' = {
         name: 'orders-queue'
         maxSizeInMegabytes: 2048
         enablePartitioning: false
+        requiresSession: false
         deadLetteringOnExpiration: true
         maxDeliveryCount: 10
       }
@@ -60,7 +61,7 @@ module serviceBus2 'modules/service-bus/main.bicep' = {
 | `skuName` | `string` | `'Standard'` | Service Bus namespace SKU. Allowed values: `Basic`, `Standard`, `Premium`. |
 | `skuCapacity` | `int` | `1` | Service Bus namespace capacity. Applicable only to the Premium SKU. |
 | `zoneRedundant` | `bool` | `false` | Enables zone redundancy for the namespace. Applicable only to the Premium SKU. |
-| `queues` | `array` | `[]` | List of queues to be created. Each object must contain: `name` (string), `maxSizeInMegabytes` (int, default 1024), `enablePartitioning` (bool, default false), `deadLetteringOnExpiration` (bool, default true), and `maxDeliveryCount` (int, default 10). |
+| `queues` | `array` | `[]` | List of queues to be created. Each object must contain: `name` (string), `maxSizeInMegabytes` (int, default 1024), `enablePartitioning` (bool, default false), `requiresSession` (bool, default false), `deadLetteringOnExpiration` (bool, default true), and `maxDeliveryCount` (int, default 10). |
 | `topics` | `array` | `[]` | List of topics to be created. Each object must contain: `name` (string), `maxSizeInMegabytes` (int, default 1024), and `enablePartitioning` (bool, default false). |
 | `enableDiagnostics` | `bool` | `false` | Enables sending diagnostics to Log Analytics. |
 | `logAnalyticsWorkspaceId` | `string` | `''` | Log Analytics workspace ID for sending diagnostics. Required when `enableDiagnostics` is `true`. |

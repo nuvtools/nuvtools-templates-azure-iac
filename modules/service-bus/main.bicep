@@ -46,7 +46,7 @@ param skuCapacity int = 1
 @description('Enables zone redundancy for the namespace. Applicable only to the Premium SKU.')
 param zoneRedundant bool = false
 
-@description('List of queues to be created. Each object must contain: name (string), maxSizeInMegabytes (int, default 1024), enablePartitioning (bool, default false), deadLetteringOnExpiration (bool, default true) and maxDeliveryCount (int, default 10).')
+@description('List of queues to be created. Each object must contain: name (string), maxSizeInMegabytes (int, default 1024), enablePartitioning (bool, default false), requiresSession (bool, default false), deadLetteringOnExpiration (bool, default true) and maxDeliveryCount (int, default 10).')
 param queues array = []
 
 @description('List of topics to be created. Each object must contain: name (string), maxSizeInMegabytes (int, default 1024) and enablePartitioning (bool, default false).')
@@ -101,6 +101,7 @@ resource serviceBusQueues 'Microsoft.ServiceBus/namespaces/queues@2024-01-01' = 
     properties: {
       maxSizeInMegabytes: queue.?maxSizeInMegabytes ?? 1024
       enablePartitioning: queue.?enablePartitioning ?? false
+      requiresSession: queue.?requiresSession ?? false
       deadLetteringOnMessageExpiration: queue.?deadLetteringOnExpiration ?? true
       maxDeliveryCount: queue.?maxDeliveryCount ?? 10
     }
