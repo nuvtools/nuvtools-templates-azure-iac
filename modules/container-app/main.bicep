@@ -10,7 +10,7 @@
 
 metadata name = 'Container App'
 metadata description = 'Module for creating a Container App with managed-identity registry access, Key Vault-backed secrets and KEDA scale rules following configurable naming conventions.'
-metadata version = '1.0.0'
+metadata version = '1.1.0'
 
 // =============================================================================
 // Parameters
@@ -91,6 +91,9 @@ param memory string = '1Gi'
 
 @description('KEDA scale rules passed through to template.scale.rules (e.g., azure-servicebus). Empty applies replica-count scaling only.')
 param scaleRules array = []
+
+@description('App runtime stack passed to configuration.runtime (e.g., { dotnet: { autoConfigureDataProtection: true } } or { java: { enableMetrics: true } }). Empty omits the runtime block.')
+param runtime object = {}
 
 // =============================================================================
 // Variables
@@ -179,6 +182,7 @@ resource containerApp 'Microsoft.App/containerApps@2025-01-01' = {
     workloadProfileName: workloadProfileName
     configuration: {
       activeRevisionsMode: 'Single'
+      runtime: empty(runtime) ? null : runtime
       ingress: ingressEnabled
         ? {
             external: ingressExternal
