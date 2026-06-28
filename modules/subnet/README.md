@@ -35,6 +35,7 @@ module subnet 'modules/subnet/main.bicep' = {
 | `serviceEndpoints` | `array` | `[]` | List of Service Endpoints to enable. Example: `['Microsoft.Storage', 'Microsoft.Sql']`. |
 | `delegations` | `array` | `[]` | List of subnet delegations. Each object must contain `name` and `serviceName`. |
 | `privateEndpointNetworkPolicies` | `string` | `'Enabled'` | Network policy for Private Endpoints. Allowed values: `Enabled`, `Disabled`, `NetworkSecurityGroupEnabled`, `RouteTableEnabled`. |
+| `defaultOutboundAccess` | `bool?` | `null` | Controls default outbound internet access for the subnet. Leave null to use the platform default. |
 
 ## Outputs
 

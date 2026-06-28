@@ -48,6 +48,9 @@ param delegations array = []
 ])
 param privateEndpointNetworkPolicies string = 'Enabled'
 
+@description('Controls default outbound internet access for the subnet. Leave null to use the platform default.')
+param defaultOutboundAccess bool?
+
 // =============================================================================
 // Variables
 // =============================================================================
@@ -92,6 +95,7 @@ resource subnet 'Microsoft.Network/virtualNetworks/subnets@2024-05-01' = {
     serviceEndpoints: !empty(formattedServiceEndpoints) ? formattedServiceEndpoints : null
     delegations: !empty(formattedDelegations) ? formattedDelegations : null
     privateEndpointNetworkPolicies: privateEndpointNetworkPolicies
+    defaultOutboundAccess: defaultOutboundAccess
   }
 }
 
