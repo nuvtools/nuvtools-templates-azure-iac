@@ -167,7 +167,9 @@ var containerEnv = concat(plainEnv, secretEnv)
 // Resources
 // =============================================================================
 
-resource containerApp 'Microsoft.App/containerApps@2025-01-01' = {
+// API version must be a preview that exposes configuration.runtime.dotnet
+// (RuntimeDotnet exists only in preview versions; every stable version removes it).
+resource containerApp 'Microsoft.App/containerApps@2025-10-02-preview' = {
   name: containerAppName
   location: location
   tags: tags
