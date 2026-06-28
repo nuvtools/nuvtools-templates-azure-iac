@@ -27,13 +27,15 @@ module subnet 'modules/subnet/main.bicep' = {
 |---|---|---|---|
 | `virtualNetworkName` | `string` | *(required)* | Name of the existing virtual network where the subnet will be created. |
 | `subnetName` | `string` | *(required)* | Name of the subnet to be created. |
-| `addressPrefix` | `string` | *(required)* | Subnet address prefix (CIDR). Example: `'10.0.1.0/24'`. |
+| `addressPrefix` | `string` | `''` | Subnet address prefix (CIDR). Example: `'10.0.1.0/24'`. Ignored when `addressPrefixes` is provided. |
+| `addressPrefixes` | `array` | `[]` | Multiple address prefixes (CIDR). Takes precedence over `addressPrefix` when not empty. |
 | `networkSecurityGroupId` | `string` | `''` | ID of the Network Security Group to associate with the subnet. Leave empty to skip association. |
 | `routeTableId` | `string` | `''` | ID of the Route Table to associate with the subnet. Leave empty to skip association. |
 | `natGatewayId` | `string` | `''` | ID of the NAT Gateway to associate with the subnet. Leave empty to skip association. |
 | `serviceEndpoints` | `array` | `[]` | List of Service Endpoints to enable. Example: `['Microsoft.Storage', 'Microsoft.Sql']`. |
 | `delegations` | `array` | `[]` | List of subnet delegations. Each object must contain `name` and `serviceName`. |
 | `privateEndpointNetworkPolicies` | `string` | `'Enabled'` | Network policy for Private Endpoints. Allowed values: `Enabled`, `Disabled`, `NetworkSecurityGroupEnabled`, `RouteTableEnabled`. |
+| `defaultOutboundAccess` | `bool?` | `null` | Controls default outbound internet access for the subnet. Leave null to use the platform default. |
 
 ## Outputs
 

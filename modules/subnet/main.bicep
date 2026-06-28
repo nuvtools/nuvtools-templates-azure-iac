@@ -18,8 +18,11 @@ param virtualNetworkName string
 @description('Name of the subnet to be created.')
 param subnetName string
 
-@description('Address prefix for the subnet (CIDR). Example: \'10.0.1.0/24\'.')
-param addressPrefix string
+@description('Address prefix for the subnet (CIDR). Example: \'10.0.1.0/24\'. Ignored when addressPrefixes is provided.')
+param addressPrefix string = ''
+
+@description('Multiple address prefixes for the subnet (CIDR). Takes precedence over addressPrefix when not empty.')
+param addressPrefixes array = []
 
 @description('ID of the Network Security Group to associate with the subnet. Leave empty to skip association.')
 param networkSecurityGroupId string = ''
@@ -44,6 +47,9 @@ param delegations array = []
   'RouteTableEnabled'
 ])
 param privateEndpointNetworkPolicies string = 'Enabled'
+
+@description('Controls default outbound internet access for the subnet. Leave null to use the platform default.')
+param defaultOutboundAccess bool?
 
 // =============================================================================
 // Variables
@@ -75,7 +81,8 @@ resource subnet 'Microsoft.Network/virtualNetworks/subnets@2024-05-01' = {
   name: subnetName
   parent: virtualNetwork
   properties: {
-    addressPrefix: addressPrefix
+    addressPrefix: empty(addressPrefixes) ? addressPrefix : null
+    addressPrefixes: !empty(addressPrefixes) ? addressPrefixes : null
     networkSecurityGroup: networkSecurityGroupId != '' ? {
       id: networkSecurityGroupId
     } : null
@@ -88,6 +95,7 @@ resource subnet 'Microsoft.Network/virtualNetworks/subnets@2024-05-01' = {
     serviceEndpoints: !empty(formattedServiceEndpoints) ? formattedServiceEndpoints : null
     delegations: !empty(formattedDelegations) ? formattedDelegations : null
     privateEndpointNetworkPolicies: privateEndpointNetworkPolicies
+    defaultOutboundAccess: defaultOutboundAccess
   }
 }
 
@@ -101,5 +109,5 @@ output id string = subnet.id
 @description('Name of the created subnet.')
 output name string = subnet.name
 
-@description('Address prefix of the created subnet.')
-output addressPrefix string = subnet.properties.addressPrefix
+@description('Address prefix of the created subnet (first prefix when multiple are set).')
+output addressPrefix string = empty(addressPrefixes) ? addressPrefix : first(addressPrefixes)
