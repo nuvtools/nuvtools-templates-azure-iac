@@ -27,7 +27,8 @@ module subnet 'modules/subnet/main.bicep' = {
 |---|---|---|---|
 | `virtualNetworkName` | `string` | *(required)* | Name of the existing virtual network where the subnet will be created. |
 | `subnetName` | `string` | *(required)* | Name of the subnet to be created. |
-| `addressPrefix` | `string` | *(required)* | Subnet address prefix (CIDR). Example: `'10.0.1.0/24'`. |
+| `addressPrefix` | `string` | `''` | Subnet address prefix (CIDR). Example: `'10.0.1.0/24'`. Ignored when `addressPrefixes` is provided. |
+| `addressPrefixes` | `array` | `[]` | Multiple address prefixes (CIDR). Takes precedence over `addressPrefix` when not empty. |
 | `networkSecurityGroupId` | `string` | `''` | ID of the Network Security Group to associate with the subnet. Leave empty to skip association. |
 | `routeTableId` | `string` | `''` | ID of the Route Table to associate with the subnet. Leave empty to skip association. |
 | `natGatewayId` | `string` | `''` | ID of the NAT Gateway to associate with the subnet. Leave empty to skip association. |
