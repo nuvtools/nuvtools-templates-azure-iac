@@ -21,4 +21,6 @@ jobs:
     uses: ./.github/workflows/reusable-deploy.yml
     with:
       environment: dev
+      # Register any providers your main.bicep needs, e.g. for Container Apps:
+      # resourceProviders: 'Microsoft.App Microsoft.ContainerRegistry'
     secrets: inherit
