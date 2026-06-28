@@ -19,6 +19,11 @@ module privateDns 'modules/private-dns-zone/main.bicep' = {
         registrationEnabled: false
       }
     ]
+    // Optional A records, e.g. a wildcard resolving an internal Container Apps
+    // environment's default domain to its static IP.
+    aRecords: [
+      { name: '*', ipv4Address: '10.0.0.4' }
+    ]
   }
 }
 ```
@@ -34,6 +39,7 @@ module privateDns 'modules/private-dns-zone/main.bicep' = {
 | `tags` | `object` | `{ ManagedBy: 'Bicep', Environment: environment }` | Tags to be applied to the resource. |
 | `zoneName` | `string` | *(required)* | Private DNS zone name. Example: `'privatelink.blob.core.windows.net'`. |
 | `virtualNetworkLinks` | `array` | `[]` | List of virtual network links. Each object must contain: `name`, `virtualNetworkId`, and optionally `registrationEnabled` (default `false`). |
+| `aRecords` | `array` | `[]` | List of A records. Each object must contain: `name` (`'*'` for wildcard, `'@'` for apex), `ipv4Address`, and optionally `ttl` (seconds, default `3600`). |
 
 ## Outputs
 

@@ -32,6 +32,9 @@ param zoneName string
 @description('List of virtual network links. Each object must contain: name (link name), virtualNetworkId (VNet ID) and optionally registrationEnabled (bool, default false).')
 param virtualNetworkLinks array = []
 
+@description('List of A records. Each object must contain: name (record name, \'*\' for wildcard, \'@\' for apex), ipv4Address (target IP) and optionally ttl (seconds, default 3600).')
+param aRecords array = []
+
 // =============================================================================
 // Variables
 // =============================================================================
@@ -60,6 +63,20 @@ resource vnetLinks 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-0
       id: link.virtualNetworkId
     }
     registrationEnabled: link.?registrationEnabled ?? false
+  }
+}]
+
+// A records (e.g. wildcard record resolving an internal Container Apps environment to its static IP)
+resource dnsARecords 'Microsoft.Network/privateDnsZones/A@2024-06-01' = [for record in aRecords: {
+  name: record.name
+  parent: privateDnsZone
+  properties: {
+    ttl: record.?ttl ?? 3600
+    aRecords: [
+      {
+        ipv4Address: record.ipv4Address
+      }
+    ]
   }
 }]
 
