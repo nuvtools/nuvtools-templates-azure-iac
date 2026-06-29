@@ -1,6 +1,7 @@
 # =============================================================================
 # Reference workflow — copy to your repo's .github/workflows/ to use.
-# Adjust paths if your project structure differs from this example.
+# Auto-deploys dev on push to main. Adjust paths if your structure differs.
+# OIDC is read from environments/dev.bicepparam — no AZURE_* secrets needed.
 # =============================================================================
 
 name: Deploy Dev
@@ -23,4 +24,3 @@ jobs:
       environment: dev
       # Register any providers your main.bicep needs, e.g. for Container Apps:
       # resourceProviders: 'Microsoft.App Microsoft.ContainerRegistry'
-    secrets: inherit
