@@ -81,9 +81,13 @@ Three environment configs in `examples/environments/`:
 - **`examples/.github/workflows/`** — Reference deploy workflow templates (consumers copy these to their own `.github/workflows/`):
   - **deploy-dev.yml** — Auto-deploys on push to `main` (only `*.bicep`/`*.bicepparam` changes)
   - **deploy-staging.yml** / **deploy-prod.yml** — Manual dispatch; prod requires approval
-  - **reusable-deploy.yml** — Shared workflow: validate → what-if → deploy (one deployment per environment via concurrency)
+  - **reusable-deploy.yml** — Shared workflow: validate → what-if → (gated) deploy. Inputs:
+    `environment`, `location`, `runDeploy` (dry-run toggle), `templateFile` / `parametersFile`
+    / `namePrefix` (multi-template support) and `resourceProviders`.
 
-Authentication uses OIDC with secrets `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`.
+Authentication uses OIDC with **no GitHub secrets** — `reusable-deploy.yml` reads
+`azureClientId` / `azureTenantId` / `azureSubscriptionId` out of the environment's bicepparam
+at login time. Each environment needs its own app registration + federated credential.
 
 ## Adding a New Module
 

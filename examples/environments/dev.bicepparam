@@ -4,6 +4,11 @@
 
 using '../main.bicep'
 
+// --- OIDC pipeline identity (non-secret; read by the deploy workflow at login time) ---
+param azureClientId = '' // TODO: client ID of the dev app registration
+param azureTenantId = '' // TODO: your Entra tenant ID
+param azureSubscriptionId = '' // TODO: target subscription ID
+
 param workloadName = 'myapp'
 param environment = 'dev'
 param location = 'brazilsouth'

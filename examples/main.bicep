@@ -31,6 +31,17 @@ param tags object = {
   Environment: environment
 }
 
+// --- OIDC pipeline identity (non-secret; read out of the bicepparam by the deploy workflow) ---
+
+@description('OIDC pipeline identity — non-secret app (client) ID. Read by azure/login in CI.')
+param azureClientId string = ''
+
+@description('OIDC pipeline identity — non-secret tenant ID.')
+param azureTenantId string = tenant().tenantId
+
+@description('OIDC pipeline identity — non-secret subscription ID.')
+param azureSubscriptionId string = subscription().subscriptionId
+
 // =============================================================================
 // Layer Enable Toggles
 // =============================================================================
@@ -669,3 +680,13 @@ output aksClusterId string = enableCompute && enableNetworking ? aksCluster!.out
 
 @description('AKS cluster FQDN (when enabled).')
 output aksClusterFqdn string = enableCompute && enableNetworking ? aksCluster!.outputs.fqdn : ''
+
+// Surface the OIDC identifiers (also keeps the params referenced for no-unused-params).
+@description('OIDC pipeline identity — app (client) ID.')
+output deployClientId string = azureClientId
+
+@description('OIDC pipeline identity — tenant ID.')
+output deployTenantId string = azureTenantId
+
+@description('OIDC pipeline identity — subscription ID.')
+output deploySubscriptionId string = azureSubscriptionId

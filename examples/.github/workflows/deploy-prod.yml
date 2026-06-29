@@ -1,12 +1,17 @@
 # =============================================================================
 # Reference workflow — copy to your repo's .github/workflows/ to use.
-# Adjust paths if your project structure differs from this example.
+# Manual dispatch. OIDC is read from environments/prod.bicepparam — no AZURE_* secrets.
 # =============================================================================
 
 name: Deploy Production
 
 on:
   workflow_dispatch:
+    inputs:
+      runDeploy:
+        description: "Apply changes (uncheck for validate + what-if only)"
+        type: boolean
+        default: true
 
 permissions:
   id-token: write
@@ -17,4 +22,4 @@ jobs:
     uses: ./.github/workflows/reusable-deploy.yml
     with:
       environment: prod
-    secrets: inherit
+      runDeploy: ${{ inputs.runDeploy }}

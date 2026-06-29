@@ -272,12 +272,16 @@ The repo includes a validation workflow that runs on PRs. Deploy workflows are p
 
 ### Configuration
 
-1. Create an App Registration in Azure AD with federated credentials for GitHub OIDC
-2. Configure the following secrets in the GitHub repository:
-   - `AZURE_CLIENT_ID`
-   - `AZURE_TENANT_ID`
-   - `AZURE_SUBSCRIPTION_ID`
-3. Create GitHub Environments (`dev`, `staging`, `prod`) with protection rules for `prod`
+The reference deploy workflows authenticate with **OIDC and no GitHub secrets** — the
+client / tenant / subscription IDs are read out of each environment's bicepparam at login
+time (`azureClientId` / `azureTenantId` / `azureSubscriptionId`).
+
+1. Create an App Registration in Azure AD with a federated credential for GitHub OIDC, and
+   grant it the deploy role (e.g. Contributor) at the target scope.
+2. Paste its client/tenant/subscription IDs into each `examples/environments/<env>.bicepparam`
+   (`azureClientId` / `azureTenantId` / `azureSubscriptionId`). No `AZURE_*` repository secrets
+   are needed.
+3. Create GitHub Environments (`dev`, `staging`, `prod`) with protection rules for `prod`.
 
 ## Default Parameters
 

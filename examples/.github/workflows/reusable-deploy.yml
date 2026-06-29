@@ -1,6 +1,12 @@
 # =============================================================================
 # Reference workflow — copy to your repo's .github/workflows/ to use.
+# validate -> what-if -> (gated) deploy, at subscription scope, over OIDC.
 # Adjust paths if your project structure differs from this example.
+#
+# OIDC: the client/tenant/subscription IDs are read out of the per-environment
+# bicepparam at login time — no AZURE_* GitHub secrets. Each environment's
+# bicepparam must expose azureClientId / azureTenantId / azureSubscriptionId
+# params (non-secret identifiers).
 # =============================================================================
 
 name: Reusable Deploy
@@ -11,17 +17,37 @@ on:
       environment:
         required: true
         type: string
-        description: 'Target environment (dev, staging, prod)'
+        description: "Target environment (dev, staging, prod) — selects the GitHub Environment gate."
       location:
         required: false
         type: string
-        default: 'brazilsouth'
-        description: 'Azure region for the deployment'
+        default: brazilsouth
+        description: "Azure region for the subscription-scoped deployment."
+      runDeploy:
+        required: false
+        type: boolean
+        default: true
+        description: "When false, runs validate + what-if only (no apply)."
+      templateFile:
+        required: false
+        type: string
+        default: main.bicep
+        description: "Bicep template to deploy."
+      parametersFile:
+        required: false
+        type: string
+        default: ""
+        description: "Bicepparam file. Defaults to environments/<environment>.bicepparam."
+      namePrefix:
+        required: false
+        type: string
+        default: deploy
+        description: "Prefix for the deployment name and concurrency group."
       resourceProviders:
         required: false
         type: string
         default: ''
-        description: 'Space-separated Azure resource providers to register before deploy (e.g. "Microsoft.App Microsoft.ContainerRegistry"). Idempotent; leave empty to skip.'
+        description: 'Space-separated Azure resource providers to register before deploy (idempotent; leave empty to skip).'
 
 permissions:
   id-token: write
@@ -31,25 +57,44 @@ jobs:
   deploy:
     name: Deploy (${{ inputs.environment }})
     runs-on: ubuntu-latest
+    # Required reviewers configured on this Environment provide the manual gate.
     environment: ${{ inputs.environment }}
     concurrency:
-      group: deploy-${{ inputs.environment }}
+      group: ${{ inputs.namePrefix }}-deploy-${{ inputs.environment }}
       cancel-in-progress: false
+    env:
+      TEMPLATE_FILE: ${{ inputs.templateFile }}
+      # Default the params file to environments/<environment>.bicepparam when not supplied.
+      PARAMS_FILE: ${{ inputs.parametersFile != '' && inputs.parametersFile || format('environments/{0}.bicepparam', inputs.environment) }}
+      DEPLOYMENT_NAME: ${{ inputs.namePrefix }}-${{ inputs.environment }}-${{ github.run_id }}
     steps:
-      - name: Checkout
+      - name: Checkout (with submodules)
         uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      # Client ID, tenant ID and subscription ID are non-secret identifiers kept in the
+      # per-environment bicepparam; read them out to drive OIDC login.
+      - name: Read OIDC identifiers from bicepparam
+        id: oidc
+        run: |
+          az bicep build-params --file "$PARAMS_FILE" --outfile params.json
+          {
+            echo "client_id=$(jq -r '.parameters.azureClientId.value' params.json)"
+            echo "tenant_id=$(jq -r '.parameters.azureTenantId.value' params.json)"
+            echo "subscription_id=$(jq -r '.parameters.azureSubscriptionId.value' params.json)"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Azure CLI Login (OIDC)
         uses: azure/login@v3
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ steps.oidc.outputs.client_id }}
+          tenant-id: ${{ steps.oidc.outputs.tenant_id }}
+          subscription-id: ${{ steps.oidc.outputs.subscription_id }}
 
-      # Resource providers must be registered on the subscription before their
-      # resources can be created. Idempotent (returns immediately if already
-      # registered). Requires the deploy identity to have */register/action
-      # (included in Contributor).
+      # Resource providers must be registered on the subscription before their resources
+      # can be created. Idempotent (returns immediately if already registered). Requires
+      # */register/action on the deploy identity (included in Contributor).
       - name: Register resource providers
         if: inputs.resourceProviders != ''
         run: |
@@ -61,21 +106,64 @@ jobs:
       - name: Validate template
         run: |
           az deployment sub validate \
-            --location ${{ inputs.location }} \
-            --template-file main.bicep \
-            --parameters environments/${{ inputs.environment }}.bicepparam
+            --name "$DEPLOYMENT_NAME" \
+            --location "${{ inputs.location }}" \
+            --template-file "$TEMPLATE_FILE" \
+            --parameters "$PARAMS_FILE"
 
       - name: What-If
         run: |
           az deployment sub what-if \
-            --location ${{ inputs.location }} \
-            --template-file main.bicep \
-            --parameters environments/${{ inputs.environment }}.bicepparam
+            --location "${{ inputs.location }}" \
+            --template-file "$TEMPLATE_FILE" \
+            --parameters "$PARAMS_FILE"
 
       - name: Deploy
+        if: ${{ inputs.runDeploy }}
         run: |
           az deployment sub create \
-            --location ${{ inputs.location }} \
-            --template-file main.bicep \
-            --parameters environments/${{ inputs.environment }}.bicepparam \
-            --name "deploy-${{ inputs.environment }}-$(date +%Y%m%d%H%M%S)"
+            --location "${{ inputs.location }}" \
+            --template-file "$TEMPLATE_FILE" \
+            --parameters "$PARAMS_FILE" \
+            --name "$DEPLOYMENT_NAME"
+
+      # ARM only surfaces a generic nested "DeploymentFailed" at the top level, so the
+      # real cause (a specific resource + error) is invisible in the log. On failure,
+      # walk the deployment-operation tree and print the leaf resources that actually
+      # failed, with their error code and message.
+      - name: Surface deployment errors
+        if: failure()
+        run: |
+          set +e
+          DEPLOYMENT="$DEPLOYMENT_NAME"
+          echo "::group::Root-cause resources for $DEPLOYMENT"
+          walk() {
+            local scope="$1" name="$2" indent="$3" ops op target code msg rg nested
+            if [ "$scope" = "sub" ]; then
+              ops=$(az deployment operation sub list --name "$name" -o json 2>/dev/null)
+            else
+              ops=$(az deployment operation group list --resource-group "$scope" --name "$name" -o json 2>/dev/null)
+            fi
+            { [ -z "$ops" ] || [ "$ops" = "[]" ]; } && return 0
+            echo "$ops" | jq -c '.[] | select(.properties.provisioningState=="Failed")' | while read -r op; do
+              target=$(echo "$op" | jq -r '.properties.targetResource.id // empty')
+              code=$(echo "$op" | jq -r '.properties.statusMessage.error.code // empty')
+              msg=$(echo "$op" | jq -r '.properties.statusMessage.error.message // empty')
+              if echo "$target" | grep -q "/providers/Microsoft.Resources/deployments/"; then
+                nested=$(basename "$target")
+                if echo "$target" | grep -q "/resourceGroups/"; then
+                  rg=$(echo "$target" | sed -E 's#.*/resourceGroups/([^/]+)/.*#\1#')
+                  walk "$rg" "$nested" "$indent  "
+                else
+                  walk "sub" "$nested" "$indent  "
+                fi
+              else
+                echo "${indent}FAILED: ${target:-<unknown resource>}"
+                [ -n "${code}${msg}" ] && echo "${indent}   [${code}] ${msg}"
+              fi
+            done
+          }
+          walk "sub" "$DEPLOYMENT" ""
+          echo "::endgroup::"
+          # Diagnostics only — never change the job's red status.
+          exit 0
