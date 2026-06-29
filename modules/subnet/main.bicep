@@ -73,11 +73,11 @@ var formattedDelegations = [for delegation in delegations: {
 // =============================================================================
 
 // Reference to the existing virtual network (parent)
-resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' existing = {
+resource virtualNetwork 'Microsoft.Network/virtualNetworks@2025-07-01' existing = {
   name: virtualNetworkName
 }
 
-resource subnet 'Microsoft.Network/virtualNetworks/subnets@2024-05-01' = {
+resource subnet 'Microsoft.Network/virtualNetworks/subnets@2025-07-01' = {
   name: subnetName
   parent: virtualNetwork
   properties: {

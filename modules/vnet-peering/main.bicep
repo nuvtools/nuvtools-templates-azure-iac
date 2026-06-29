@@ -38,11 +38,11 @@ param useRemoteGateways bool = false
 // =============================================================================
 
 // Reference to the existing local virtual network (parent)
-resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' existing = {
+resource virtualNetwork 'Microsoft.Network/virtualNetworks@2025-07-01' existing = {
   name: localVnetName
 }
 
-resource peering 'Microsoft.Network/virtualNetworks/virtualNetworkPeerings@2024-05-01' = {
+resource peering 'Microsoft.Network/virtualNetworks/virtualNetworkPeerings@2025-07-01' = {
   name: peeringName
   parent: virtualNetwork
   properties: {
