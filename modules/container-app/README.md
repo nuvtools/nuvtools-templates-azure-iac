@@ -9,6 +9,12 @@ Bicep module for provisioning an Azure Container App on an existing managed envi
 - **Plain values** become container environment variables (`{ name, value }`).
 - **Key Vault references** of the form `@Microsoft.KeyVault(VaultName=<vault>;SecretName=<secret>)` become a deduplicated Key Vault-backed `secrets[]` entry (versionless URL, resolved by the user-assigned identity) plus an env var that references it (`{ name, secretRef }`). The env var name is preserved exactly, so application code is unchanged.
 
+## First deployment: identity race
+
+Creating a Container App with a user-assigned identity **and** `@Microsoft.KeyVault(...)` secret references in a single operation can fail because Container Apps may evaluate secret resolution before the identity is attached to the resource (`No managed service identities are associated with resource ...` / `IdentityDoesNotExist`). It only affects the very first create — once the app exists with its identity, later updates are safe.
+
+Set `bootstrapIdentity: true` for that first deployment. The module then pre-creates the app (via `bootstrap.bicep`) with only the identity attached — a public placeholder image, scaled to zero, no ingress, no registries, no secrets — and the real configuration is applied as a second step that `dependsOn` it. Revert to `false` afterwards; it has no steady-state effect once the app exists.
+
 ## Usage
 
 ```bicep
@@ -89,6 +95,9 @@ module workerApp 'modules/container-app/main.bicep' = {
 | `cpu` | `string` | `'0.5'` | vCPU allocated to the container. |
 | `memory` | `string` | `'1Gi'` | Memory allocated to the container. |
 | `scaleRules` | `array` | `[]` | KEDA scale rules passed through to `template.scale.rules`. |
+| `runtime` | `object` | `{}` | Runtime stack passed to `configuration.runtime`. Empty omits the block. |
+| `bootstrapIdentity` | `bool` | `false` | Pre-create the app with only its identity attached before secrets are added (first-deploy identity-race guard). See [First deployment](#first-deployment-identity-race). |
+| `bootstrapImage` | `string` | `'mcr.microsoft.com/k8se/quickstart:latest'` | Public placeholder image for the bootstrap pass. Only used when `bootstrapIdentity` is true. |
 
 ## Outputs
 
