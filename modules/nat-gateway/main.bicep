@@ -55,14 +55,14 @@ param publicIpPrefixLength int = 31
 // Pattern: {workloadName}-ng-{environment} (CAF: ng)
 var autoName = '${workloadName}-ng-${environment}'
 var natGatewayName = empty(name) ? autoName : name
-var publicIpPrefixName = '${workloadName}-ippre-${environment}'
+var publicIpPrefixName = '${workloadName}-ng-ippre-${environment}'
 
 // =============================================================================
 // Resources
 // =============================================================================
 
 // Public IP prefix used by the NAT Gateway
-resource publicIpPrefix 'Microsoft.Network/publicIPPrefixes@2024-05-01' = {
+resource publicIpPrefix 'Microsoft.Network/publicIPPrefixes@2025-07-01' = {
   name: publicIpPrefixName
   location: location
   tags: tags
@@ -75,7 +75,7 @@ resource publicIpPrefix 'Microsoft.Network/publicIPPrefixes@2024-05-01' = {
   }
 }
 
-resource natGateway 'Microsoft.Network/natGateways@2024-05-01' = {
+resource natGateway 'Microsoft.Network/natGateways@2025-07-01' = {
   name: natGatewayName
   location: location
   tags: tags
