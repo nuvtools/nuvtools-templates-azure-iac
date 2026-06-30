@@ -10,7 +10,7 @@
 
 metadata name = 'Container App'
 metadata description = 'Module for creating a Container App with managed-identity registry access, Key Vault-backed secrets and KEDA scale rules following configurable naming conventions.'
-metadata version = '1.1.0'
+metadata version = '1.2.0'
 
 // =============================================================================
 // Parameters
@@ -95,6 +95,12 @@ param scaleRules array = []
 @description('App runtime stack passed to configuration.runtime (e.g., { dotnet: { autoConfigureDataProtection: true } } or { java: { enableMetrics: true } }). Empty omits the runtime block.')
 param runtime object = {}
 
+@description('When true, pre-creates the app with only its user-assigned identity attached (placeholder image, no secrets) before applying the real configuration, avoiding the Container Apps create-time race where Key Vault secret resolution runs before the identity exists on the resource. Set true only for the first deployment of a new app/environment; it has no steady-state effect once the app exists.')
+param bootstrapIdentity bool = false
+
+@description('Public placeholder image used by the identity bootstrap pass (must pull without registry auth). Only used when bootstrapIdentity is true.')
+param bootstrapImage string = 'mcr.microsoft.com/k8se/quickstart:latest'
+
 // =============================================================================
 // Variables
 // =============================================================================
@@ -167,6 +173,22 @@ var containerEnv = concat(plainEnv, secretEnv)
 // Resources
 // =============================================================================
 
+// First-deploy identity guard: attach the user-assigned identity to the app
+// before any @Microsoft.KeyVault secret is added, so ACA cannot evaluate secret
+// resolution before the identity exists on the resource. See bootstrap.bicep.
+module identityBootstrap 'bootstrap.bicep' = if (bootstrapIdentity) {
+  name: 'bootstrap-identity-${containerAppName}'
+  params: {
+    name: containerAppName
+    location: location
+    tags: tags
+    managedEnvironmentId: managedEnvironmentId
+    userAssignedIdentityId: userAssignedIdentityId
+    workloadProfileName: workloadProfileName
+    image: bootstrapImage
+  }
+}
+
 // API version must be a preview that exposes configuration.runtime.dotnet
 // (RuntimeDotnet exists only in preview versions; every stable version removes it).
 resource containerApp 'Microsoft.App/containerApps@2025-10-02-preview' = {
@@ -220,6 +242,7 @@ resource containerApp 'Microsoft.App/containerApps@2025-10-02-preview' = {
       }
     }
   }
+  dependsOn: bootstrapIdentity ? [identityBootstrap] : []
 }
 
 // =============================================================================
