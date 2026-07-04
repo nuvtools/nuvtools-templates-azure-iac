@@ -56,6 +56,12 @@ param networkRules array = []
 @maxValue(65000)
 param networkRuleCollectionPriority int = 200
 
+@description('Enables sending firewall diagnostics (all log categories + metrics) to Log Analytics.')
+param enableDiagnostics bool = false
+
+@description('Log Analytics workspace ID for diagnostics. Required when enableDiagnostics is true.')
+param logAnalyticsWorkspaceId string = ''
+
 // =============================================================================
 // Variables
 // =============================================================================
@@ -137,6 +143,30 @@ resource firewall 'Microsoft.Network/azureFirewalls@2025-07-01' = {
   dependsOn: [
     ruleCollectionGroup
   ]
+}
+
+// Conditional diagnostic settings — resource-specific tables (AZFWNetworkRule,
+// AZFWApplicationRule, AZFWNatRule, ...) via the Dedicated destination.
+#disable-next-line use-recent-api-versions
+resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (enableDiagnostics && !empty(logAnalyticsWorkspaceId)) {
+  name: '${firewallName}-diag'
+  scope: firewall
+  properties: {
+    workspaceId: logAnalyticsWorkspaceId
+    logAnalyticsDestinationType: 'Dedicated'
+    logs: [
+      {
+        categoryGroup: 'allLogs'
+        enabled: true
+      }
+    ]
+    metrics: [
+      {
+        category: 'AllMetrics'
+        enabled: true
+      }
+    ]
+  }
 }
 
 // =============================================================================

@@ -49,6 +49,8 @@ module firewall 'modules/azure-firewall/main.bicep' = {
 | `publicIpId` | `string` | *(required)* | Resource ID of an existing public IP to associate. |
 | `networkRules` | `array` | `[]` | Egress network rules (`name`, `sourceAddresses`, `destinationAddresses`, `destinationPorts`, `protocols`). |
 | `networkRuleCollectionPriority` | `int` | `200` | Priority of the rule collection group and collection. |
+| `enableDiagnostics` | `bool` | `false` | Send all firewall log categories + metrics to Log Analytics (resource-specific `AZFW*` tables). |
+| `logAnalyticsWorkspaceId` | `string` | `''` | Log Analytics workspace ID. Required when `enableDiagnostics` is true. |
 
 ## Outputs
 
