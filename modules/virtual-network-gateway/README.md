@@ -19,7 +19,7 @@ module gateway 'modules/virtual-network-gateway/main.bicep' = {
     workloadName: 'hd-common'
     environment: 'hub'
     location: 'brazilsouth'
-    skuName: 'VpnGw2'
+    skuName: 'VpnGw2AZ'
     activeActive: true
     enableBgp: true
     bgpAsn: 65515
@@ -47,7 +47,7 @@ module gateway 'modules/virtual-network-gateway/main.bicep' = {
 | `environment` | `string` | *(required)* | Deployment environment. |
 | `location` | `string` | `'brazilsouth'` | Azure region. |
 | `tags` | `object` | `{ ManagedBy: 'Bicep', Environment: environment }` | Tags. |
-| `skuName` | `string` | `'VpnGw2'` | Gateway SKU (name and tier). |
+| `skuName` | `string` | `'VpnGw2AZ'` | Gateway SKU (name and tier). Prefer AZ SKUs (non-AZ are being retired). |
 | `vpnType` | `string` | `'RouteBased'` | `RouteBased` or `PolicyBased`. |
 | `vpnGatewayGeneration` | `string` | `'Generation2'` | `Generation1` or `Generation2`. |
 | `activeActive` | `bool` | `false` | Active-active mode (needs two IP configs). |
