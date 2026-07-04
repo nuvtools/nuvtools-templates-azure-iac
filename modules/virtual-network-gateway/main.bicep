@@ -33,8 +33,8 @@ param tags object = {
   Environment: environment
 }
 
-@description('Gateway SKU (name and tier). e.g. VpnGw1..5, VpnGw1AZ..5AZ.')
-param skuName string = 'VpnGw2'
+@description('Gateway SKU (name and tier). Prefer the AZ SKUs — non-AZ VpnGw1..5 are being retired. e.g. VpnGw1AZ..5AZ.')
+param skuName string = 'VpnGw2AZ'
 
 @description('VPN type.')
 @allowed([
