@@ -6,7 +6,7 @@
 
 metadata name = 'Application Insights'
 metadata description = 'Module for creating Application Insights (workspace-based) with configurable sampling and retention following configurable naming conventions.'
-metadata version = '1.0.0'
+metadata version = '1.1.0'
 
 // =============================================================================
 // Parameters
@@ -35,8 +35,11 @@ param tags object = {
 @description('Application type monitored by Application Insights.')
 param applicationType string = 'web'
 
-@description('Log Analytics workspace ID to which Application Insights will be linked. Required for workspace-based Application Insights.')
-param logAnalyticsWorkspaceId string
+@description('Name of the Log Analytics workspace in the deployment resource group. Takes precedence over logAnalyticsWorkspaceId; provide exactly one of the two.')
+param logAnalyticsWorkspaceName string = ''
+
+@description('Log Analytics workspace ID to which Application Insights will be linked. Use for workspaces outside the deployment resource group; provide exactly one of this or logAnalyticsWorkspaceName.')
+param logAnalyticsWorkspaceId string = ''
 
 @description('Disables IP address masking in telemetry data.')
 param disableIpMasking bool = false
@@ -48,12 +51,28 @@ param retentionInDays int = 90
 param samplingPercentage int = 100
 
 // =============================================================================
+// Existing resources (name-based lookups)
+// =============================================================================
+
+resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2025-02-01' existing = if (!empty(logAnalyticsWorkspaceName)) {
+  name: logAnalyticsWorkspaceName
+}
+
+// =============================================================================
 // Variables
 // =============================================================================
 
+// The check is threaded through appInsightsName because ARM inlines variables
+// lazily and never evaluates a standalone fail().
+var validWorkspaceInput = empty(logAnalyticsWorkspaceName) != empty(logAnalyticsWorkspaceId)
+  ? true
+  : fail('Provide exactly one of logAnalyticsWorkspaceName or logAnalyticsWorkspaceId.')
+
+var resolvedWorkspaceId = empty(logAnalyticsWorkspaceName) ? logAnalyticsWorkspaceId : logAnalytics.id
+
 // Pattern: {workloadName}-appi-{environment}
 var autoName = '${workloadName}-appi-${environment}'
-var appInsightsName = empty(name) ? autoName : name
+var appInsightsName = validWorkspaceInput ? (empty(name) ? autoName : name) : ''
 
 // =============================================================================
 // Resources
@@ -66,7 +85,7 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   kind: applicationType
   properties: {
     Application_Type: applicationType
-    WorkspaceResourceId: logAnalyticsWorkspaceId
+    WorkspaceResourceId: resolvedWorkspaceId
     DisableIpMasking: disableIpMasking
     SamplingPercentage: samplingPercentage
     #disable-next-line BCP073
