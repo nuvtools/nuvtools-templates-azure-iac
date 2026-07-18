@@ -37,7 +37,7 @@ param image string = 'mcr.microsoft.com/k8se/quickstart:latest'
 
 // Scaled to zero with no ingress: the placeholder never runs and nothing depends
 // on a healthy revision, so the create succeeds purely to attach the identity.
-resource containerApp 'Microsoft.App/containerApps@2025-10-02-preview' = {
+resource containerApp 'Microsoft.App/containerApps@2026-01-01' = {
   name: name
   location: location
   tags: tags

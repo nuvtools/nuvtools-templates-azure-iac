@@ -88,7 +88,7 @@ var hasAzureAdAdmin = !empty(azureAdAdministrator)
 // Resources
 // =============================================================================
 
-resource sqlServer 'Microsoft.Sql/servers@2024-05-01-preview' = {
+resource sqlServer 'Microsoft.Sql/servers@2025-01-01' = {
   name: sqlServerName
   location: location
   tags: tags
@@ -114,7 +114,7 @@ resource sqlServer 'Microsoft.Sql/servers@2024-05-01-preview' = {
 }
 
 // Firewall rule to allow access from Azure services (0.0.0.0 - 0.0.0.0)
-resource firewallRuleAllowAzureServices 'Microsoft.Sql/servers/firewallRules@2024-05-01-preview' = {
+resource firewallRuleAllowAzureServices 'Microsoft.Sql/servers/firewallRules@2025-01-01' = {
   name: 'AllowAzureServices'
   parent: sqlServer
   properties: {
@@ -124,7 +124,7 @@ resource firewallRuleAllowAzureServices 'Microsoft.Sql/servers/firewallRules@202
 }
 
 // Auditing policy - conditionally enabled
-resource auditingSettings 'Microsoft.Sql/servers/auditingSettings@2024-05-01-preview' = if (enableAuditing) {
+resource auditingSettings 'Microsoft.Sql/servers/auditingSettings@2025-01-01' = if (enableAuditing) {
   name: 'default'
   parent: sqlServer
   properties: {
@@ -136,7 +136,7 @@ resource auditingSettings 'Microsoft.Sql/servers/auditingSettings@2024-05-01-pre
 }
 
 // Security alert policy (Advanced Threat Protection) - conditionally enabled
-resource securityAlertPolicy 'Microsoft.Sql/servers/securityAlertPolicies@2024-05-01-preview' = if (enableAdvancedThreatProtection) {
+resource securityAlertPolicy 'Microsoft.Sql/servers/securityAlertPolicies@2025-01-01' = if (enableAdvancedThreatProtection) {
   name: 'Default'
   parent: sqlServer
   properties: {
@@ -145,7 +145,7 @@ resource securityAlertPolicy 'Microsoft.Sql/servers/securityAlertPolicies@2024-0
 }
 
 // Vulnerability assessment - conditionally enabled
-resource vulnerabilityAssessment 'Microsoft.Sql/servers/vulnerabilityAssessments@2024-05-01-preview' = if (enableVulnerabilityAssessment && !empty(vulnerabilityAssessmentStorageAccountId)) {
+resource vulnerabilityAssessment 'Microsoft.Sql/servers/vulnerabilityAssessments@2025-01-01' = if (enableVulnerabilityAssessment && !empty(vulnerabilityAssessmentStorageAccountId)) {
   name: 'default'
   parent: sqlServer
   properties: {

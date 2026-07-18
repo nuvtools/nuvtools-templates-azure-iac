@@ -83,11 +83,11 @@ var databaseName = empty(name) ? autoName : name
 // =============================================================================
 
 // Reference to the existing SQL Server
-resource sqlServer 'Microsoft.Sql/servers@2024-05-01-preview' existing = {
+resource sqlServer 'Microsoft.Sql/servers@2025-01-01' existing = {
   name: sqlServerName
 }
 
-resource sqlDatabase 'Microsoft.Sql/servers/databases@2024-05-01-preview' = {
+resource sqlDatabase 'Microsoft.Sql/servers/databases@2025-01-01' = {
   name: databaseName
   parent: sqlServer
   location: location
@@ -108,7 +108,7 @@ resource sqlDatabase 'Microsoft.Sql/servers/databases@2024-05-01-preview' = {
 }
 
 // Short-term backup policy
-resource shortTermRetentionPolicy 'Microsoft.Sql/servers/databases/backupShortTermRetentionPolicies@2024-05-01-preview' = {
+resource shortTermRetentionPolicy 'Microsoft.Sql/servers/databases/backupShortTermRetentionPolicies@2025-01-01' = {
   name: 'default'
   parent: sqlDatabase
   properties: {
@@ -118,7 +118,7 @@ resource shortTermRetentionPolicy 'Microsoft.Sql/servers/databases/backupShortTe
 }
 
 // Long-term retention policy - conditionally enabled
-resource longTermRetentionPolicy 'Microsoft.Sql/servers/databases/backupLongTermRetentionPolicies@2024-05-01-preview' = if (enableLongTermRetention) {
+resource longTermRetentionPolicy 'Microsoft.Sql/servers/databases/backupLongTermRetentionPolicies@2025-01-01' = if (enableLongTermRetention) {
   name: 'default'
   parent: sqlDatabase
   properties: {

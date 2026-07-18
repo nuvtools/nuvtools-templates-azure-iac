@@ -67,7 +67,7 @@ var formattedSecurityRules = [for rule in securityRules: {
 // Resources
 // =============================================================================
 
-resource networkSecurityGroup 'Microsoft.Network/networkSecurityGroups@2024-05-01' = {
+resource networkSecurityGroup 'Microsoft.Network/networkSecurityGroups@2025-07-01' = {
   name: networkSecurityGroupName
   location: location
   tags: tags

@@ -209,7 +209,7 @@ var resolvedSslCertificates = [
 // =============================================================================
 
 // Public IP for the Application Gateway frontend
-resource publicIp 'Microsoft.Network/publicIPAddresses@2024-05-01' = {
+resource publicIp 'Microsoft.Network/publicIPAddresses@2025-07-01' = {
   name: publicIpName
   location: location
   tags: tags
@@ -230,7 +230,7 @@ resource userIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-
 }
 
 // Conditional WAF policy
-resource wafPolicy 'Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies@2024-05-01' = if (enableWafPolicy && skuName == 'WAF_v2') {
+resource wafPolicy 'Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies@2025-07-01' = if (enableWafPolicy && skuName == 'WAF_v2') {
   name: wafPolicyName
   location: location
   tags: tags
@@ -254,7 +254,7 @@ resource wafPolicy 'Microsoft.Network/ApplicationGatewayWebApplicationFirewallPo
 }
 
 // Application Gateway
-resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' = {
+resource applicationGateway 'Microsoft.Network/applicationGateways@2025-07-01' = {
   name: appGatewayName
   location: location
   tags: tags
