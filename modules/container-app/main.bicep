@@ -10,7 +10,7 @@
 
 metadata name = 'Container App'
 metadata description = 'Module for creating a Container App with managed-identity registry access, Key Vault-backed secrets and KEDA scale rules following configurable naming conventions.'
-metadata version = '1.2.0'
+metadata version = '1.3.0'
 
 // =============================================================================
 // Parameters
@@ -36,14 +36,23 @@ param tags object = {
   Environment: environment
 }
 
-@description('Resource ID of the Container Apps managed environment that hosts the app.')
-param managedEnvironmentId string
+@description('Name of the Container Apps managed environment in the deployment resource group. Takes precedence over managedEnvironmentId; provide exactly one of the two.')
+param managedEnvironmentName string = ''
 
-@description('Resource ID of the user-assigned managed identity used for registry pull and Key Vault secret resolution.')
-param userAssignedIdentityId string
+@description('Resource ID of the Container Apps managed environment that hosts the app. Use for environments outside the deployment resource group; provide exactly one of this or managedEnvironmentName.')
+param managedEnvironmentId string = ''
 
-@description('Login server of the container registry (e.g., myregistry.azurecr.io).')
-param containerRegistryLoginServer string
+@description('Name of the user-assigned managed identity in the deployment resource group. Takes precedence over userAssignedIdentityId; provide exactly one of the two.')
+param userAssignedIdentityName string = ''
+
+@description('Resource ID of the user-assigned managed identity used for registry pull and Key Vault secret resolution. Provide exactly one of this or userAssignedIdentityName.')
+param userAssignedIdentityId string = ''
+
+@description('Name of the container registry in the deployment resource group. Takes precedence over containerRegistryLoginServer; provide exactly one of the two.')
+param containerRegistryName string = ''
+
+@description('Login server of the container registry (e.g., myregistry.azurecr.io). Provide exactly one of this or containerRegistryName.')
+param containerRegistryLoginServer string = ''
 
 @description('Container image reference, including tag or digest.')
 param image string
@@ -53,6 +62,9 @@ param workloadProfileName string = 'Consumption'
 
 @description('Application settings as an array of objects: { name: string, value: string }. Values starting with @Microsoft.KeyVault(...) become Key Vault-backed secrets.')
 param appSettings array = []
+
+@description('When true, appends an AZURE_CLIENT_ID env var with the client ID of the user-assigned identity so DefaultAzureCredential selects it. Requires userAssignedIdentityName.')
+param setAzureClientIdAppSetting bool = false
 
 @description('Creates an ingress when true. Set false for background workers with no inbound traffic.')
 param ingressEnabled bool = true
@@ -92,6 +104,9 @@ param memory string = '1Gi'
 @description('KEDA scale rules passed through to template.scale.rules (e.g., azure-servicebus). Empty applies replica-count scaling only.')
 param scaleRules array = []
 
+@description('When true, injects the app user-assigned identity as the default identity of every custom KEDA scale rule that does not set one (identity-based scaler auth without repeating the resource ID per rule).')
+param scaleRulesUseAppIdentity bool = false
+
 @description('App runtime stack passed to configuration.runtime (e.g., { dotnet: { autoConfigureDataProtection: true } } or { java: { enableMetrics: true } }). Empty omits the runtime block.')
 param runtime object = {}
 
@@ -102,12 +117,51 @@ param bootstrapIdentity bool = false
 param bootstrapImage string = 'mcr.microsoft.com/k8se/quickstart:latest'
 
 // =============================================================================
+// Existing resources (name-based lookups)
+// =============================================================================
+
+resource managedEnvironment 'Microsoft.App/managedEnvironments@2025-01-01' existing = if (!empty(managedEnvironmentName)) {
+  name: managedEnvironmentName
+}
+
+resource userAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' existing = if (!empty(userAssignedIdentityName)) {
+  name: userAssignedIdentityName
+}
+
+resource containerRegistry 'Microsoft.ContainerRegistry/registries@2025-04-01' existing = if (!empty(containerRegistryName)) {
+  name: containerRegistryName
+}
+
+// =============================================================================
 // Variables
 // =============================================================================
 
+// Exactly one of each name/ID pair must be provided. The checks are threaded
+// through containerAppName because ARM inlines variables lazily and never
+// evaluates a standalone fail().
+var validEnvironmentInput = empty(managedEnvironmentName) != empty(managedEnvironmentId)
+  ? true
+  : fail('Provide exactly one of managedEnvironmentName or managedEnvironmentId.')
+var validIdentityInput = empty(userAssignedIdentityName) != empty(userAssignedIdentityId)
+  ? true
+  : fail('Provide exactly one of userAssignedIdentityName or userAssignedIdentityId.')
+var validRegistryInput = empty(containerRegistryName) != empty(containerRegistryLoginServer)
+  ? true
+  : fail('Provide exactly one of containerRegistryName or containerRegistryLoginServer.')
+var validClientIdInput = !setAzureClientIdAppSetting || !empty(userAssignedIdentityName)
+  ? true
+  : fail('setAzureClientIdAppSetting requires userAssignedIdentityName.')
+var inputsValid = validEnvironmentInput && validIdentityInput && validRegistryInput && validClientIdInput
+
+var resolvedManagedEnvironmentId = empty(managedEnvironmentName) ? managedEnvironmentId : managedEnvironment.id
+var resolvedIdentityId = empty(userAssignedIdentityName) ? userAssignedIdentityId : userAssignedIdentity.id
+var resolvedLoginServer = empty(containerRegistryName)
+  ? containerRegistryLoginServer
+  : containerRegistry!.properties.loginServer
+
 // Pattern: {workloadName}-ca-{environment} (CAF: ca)
 var autoName = '${workloadName}-ca-${environment}'
-var containerAppName = empty(name) ? autoName : name
+var containerAppName = inputsValid ? (empty(name) ? autoName : name) : ''
 
 // --- Application settings translation -------------------------------------
 // A Key Vault reference looks like:
@@ -163,11 +217,27 @@ var secrets = [
   for secretRef in distinctSecretRefs: {
     name: secretRef
     keyVaultUrl: filter(keyVaultRefs, ref => ref.secretRef == secretRef)[0].keyVaultUrl
-    identity: userAssignedIdentityId
+    identity: resolvedIdentityId
   }
 ]
 
-var containerEnv = concat(plainEnv, secretEnv)
+var azureClientIdEnv = setAzureClientIdAppSetting
+  ? [
+      {
+        name: 'AZURE_CLIENT_ID'
+        value: userAssignedIdentity!.properties.clientId
+      }
+    ]
+  : []
+
+var containerEnv = concat(plainEnv, secretEnv, azureClientIdEnv)
+
+// The app identity is injected as a default so explicit per-rule identities win.
+var effectiveScaleRules = [
+  for rule in scaleRules: scaleRulesUseAppIdentity && contains(rule, 'custom')
+    ? union(rule, { custom: union({ identity: resolvedIdentityId }, rule.custom) })
+    : rule
+]
 
 // =============================================================================
 // Resources
@@ -182,8 +252,8 @@ module identityBootstrap 'bootstrap.bicep' = if (bootstrapIdentity) {
     name: containerAppName
     location: location
     tags: tags
-    managedEnvironmentId: managedEnvironmentId
-    userAssignedIdentityId: userAssignedIdentityId
+    managedEnvironmentId: resolvedManagedEnvironmentId
+    userAssignedIdentityId: resolvedIdentityId
     workloadProfileName: workloadProfileName
     image: bootstrapImage
   }
@@ -191,6 +261,7 @@ module identityBootstrap 'bootstrap.bicep' = if (bootstrapIdentity) {
 
 // API version must be a preview that exposes configuration.runtime.dotnet
 // (RuntimeDotnet exists only in preview versions; every stable version removes it).
+#disable-next-line use-recent-api-versions
 resource containerApp 'Microsoft.App/containerApps@2025-10-02-preview' = {
   name: containerAppName
   location: location
@@ -198,11 +269,11 @@ resource containerApp 'Microsoft.App/containerApps@2025-10-02-preview' = {
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: {
-      '${userAssignedIdentityId}': {}
+      '${resolvedIdentityId}': {}
     }
   }
   properties: {
-    managedEnvironmentId: managedEnvironmentId
+    managedEnvironmentId: resolvedManagedEnvironmentId
     workloadProfileName: workloadProfileName
     configuration: {
       activeRevisionsMode: 'Single'
@@ -217,8 +288,8 @@ resource containerApp 'Microsoft.App/containerApps@2025-10-02-preview' = {
         : null
       registries: [
         {
-          server: containerRegistryLoginServer
-          identity: userAssignedIdentityId
+          server: resolvedLoginServer
+          identity: resolvedIdentityId
         }
       ]
       secrets: secrets
@@ -238,7 +309,7 @@ resource containerApp 'Microsoft.App/containerApps@2025-10-02-preview' = {
       scale: {
         minReplicas: minReplicas
         maxReplicas: maxReplicas
-        rules: empty(scaleRules) ? null : scaleRules
+        rules: empty(scaleRules) ? null : effectiveScaleRules
       }
     }
   }
