@@ -48,7 +48,7 @@ param enableSoftDelete bool = true
 @description('Soft delete retention period in days.')
 param softDeleteRetentionInDays int = 90
 
-@description('Enables purge protection. Prevents permanent deletion during the retention period.')
+@description('Enables purge protection. Prevents permanent deletion during the retention period. Irreversible: the API rejects an explicit false, so when false the property is omitted rather than sent.')
 param enablePurgeProtection bool = true
 
 @description('Default action for network rules (Allow or Deny).')
@@ -120,7 +120,10 @@ resource keyVault 'Microsoft.KeyVault/vaults@2024-11-01' = {
     enableRbacAuthorization: enableRbacAuthorization
     enableSoftDelete: enableSoftDelete
     softDeleteRetentionInDays: softDeleteRetentionInDays
-    enablePurgeProtection: enablePurgeProtection
+    // Only ever sent as true: the API rejects an explicit false with
+    // "cannot be set to false ... irreversible action", even on creation.
+    // null makes ARM drop the property, which leaves purge protection off.
+    enablePurgeProtection: enablePurgeProtection ? true : null
     networkAcls: {
       defaultAction: networkDefaultAction
       bypass: 'AzureServices'

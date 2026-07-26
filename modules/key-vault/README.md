@@ -36,6 +36,17 @@ module keyVault 'modules/key-vault/main.bicep' = {
 }
 ```
 
+## Purge Protection
+
+Key Vault rejects an **explicit** `enablePurgeProtection: false` — including on creation —
+with `BadRequest: The property "enablePurgeProtection" cannot be set to false. Enabling the
+purge protection for a vault is an irreversible action.` The API accepts only `true` or the
+property being absent.
+
+The module therefore emits `enablePurgeProtection ? true : null`, and ARM drops the null, so
+`enablePurgeProtection: false` means "leave purge protection off" rather than failing the
+deployment. Going from `false` to `true` works; the reverse never does.
+
 ## Role Assignments
 
 `secretsUserPrincipalIds` and `certificateUserPrincipalIds` grant the built-in **Key Vault Secrets User** (`4633458b-17de-408a-b874-0445c86b69e6`) and **Key Vault Certificate User** (`db79e9a7-68ee-4b58-9aeb-b90e7c24fcba`) roles, scoped to the vault itself rather than to the resource group. Both are read-only data plane roles and only take effect while `enableRbacAuthorization` is `true`.
@@ -57,7 +68,7 @@ The Secrets User assignment name matches the one produced by `modules/app-gatewa
 | `enableRbacAuthorization` | `bool` | `true` | Enables RBAC-based authorization instead of access policies. |
 | `enableSoftDelete` | `bool` | `true` | Enables soft delete for protection against accidental deletion. |
 | `softDeleteRetentionInDays` | `int` | `90` | Soft delete retention period in days. |
-| `enablePurgeProtection` | `bool` | `true` | Enables purge protection. Prevents permanent deletion during the retention period. |
+| `enablePurgeProtection` | `bool` | `true` | Enables purge protection. Prevents permanent deletion during the retention period. Sent only when `true` — see below. |
 | `networkDefaultAction` | `string` | `'Deny'` | Default network rule action. Allowed values: `Allow`, `Deny`. |
 | `allowedSubnetIds` | `array` | `[]` | List of allowed subnet IDs for Key Vault access via service endpoints. |
 | `allowedIpRanges` | `array` | `[]` | List of allowed IP ranges for Key Vault access (CIDR format or single IP). |
