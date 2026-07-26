@@ -70,6 +70,12 @@ param enableDiagnostics bool = false
 @description('Log Analytics workspace ID for sending diagnostics. Required when enableDiagnostics is true.')
 param logAnalyticsWorkspaceId string = ''
 
+@description('List of principal IDs that will receive the Key Vault Secrets User role on the Key Vault. Requires enableRbacAuthorization.')
+param secretsUserPrincipalIds array = []
+
+@description('List of principal IDs that will receive the Key Vault Certificate User role on the Key Vault. Requires enableRbacAuthorization.')
+param certificateUserPrincipalIds array = []
+
 // =============================================================================
 // Variables
 // =============================================================================
@@ -92,6 +98,10 @@ var ipRules = [
     value: ipRange
   }
 ]
+
+// Built-in data plane read roles
+var keyVaultSecretsUserRoleDefinitionId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
+var keyVaultCertificateUserRoleDefinitionId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'db79e9a7-68ee-4b58-9aeb-b90e7c24fcba')
 
 // =============================================================================
 // Resources
@@ -119,6 +129,32 @@ resource keyVault 'Microsoft.KeyVault/vaults@2024-11-01' = {
     }
   }
 }
+
+// Conditional role assignments for reading secrets
+resource secretsUserRoleAssignments 'Microsoft.Authorization/roleAssignments@2022-04-01' = [
+  for principalId in secretsUserPrincipalIds: {
+    name: guid(keyVault.id, principalId, keyVaultSecretsUserRoleDefinitionId)
+    scope: keyVault
+    properties: {
+      roleDefinitionId: keyVaultSecretsUserRoleDefinitionId
+      principalId: principalId
+      principalType: 'ServicePrincipal'
+    }
+  }
+]
+
+// Conditional role assignments for reading certificates
+resource certificateUserRoleAssignments 'Microsoft.Authorization/roleAssignments@2022-04-01' = [
+  for principalId in certificateUserPrincipalIds: {
+    name: guid(keyVault.id, principalId, keyVaultCertificateUserRoleDefinitionId)
+    scope: keyVault
+    properties: {
+      roleDefinitionId: keyVaultCertificateUserRoleDefinitionId
+      principalId: principalId
+      principalType: 'ServicePrincipal'
+    }
+  }
+]
 
 // Conditional diagnostic settings
 #disable-next-line use-recent-api-versions

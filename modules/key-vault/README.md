@@ -1,6 +1,6 @@
 # Key Vault
 
-Bicep module for provisioning a Key Vault with RBAC, soft delete, network rules, and diagnostics following a configurable naming convention (`{workloadName}-kv-{environment}`). Supports RBAC-based authorization, purge protection, subnet and IP range access rules, and sending diagnostics to Log Analytics.
+Bicep module for provisioning a Key Vault with RBAC, soft delete, network rules, and diagnostics following a configurable naming convention (`{workloadName}-kv-{environment}`). Supports RBAC-based authorization, purge protection, subnet and IP range access rules, data plane read role assignments scoped to the vault, and sending diagnostics to Log Analytics.
 
 ## Naming Convention
 
@@ -26,9 +26,23 @@ module keyVault 'modules/key-vault/main.bicep' = {
     allowedIpRanges: [
       '203.0.113.0/24'
     ]
+    secretsUserPrincipalIds: [
+      managedIdentity.outputs.principalId
+    ]
+    certificateUserPrincipalIds: [
+      managedIdentity.outputs.principalId
+    ]
   }
 }
 ```
+
+## Role Assignments
+
+`secretsUserPrincipalIds` and `certificateUserPrincipalIds` grant the built-in **Key Vault Secrets User** (`4633458b-17de-408a-b874-0445c86b69e6`) and **Key Vault Certificate User** (`db79e9a7-68ee-4b58-9aeb-b90e7c24fcba`) roles, scoped to the vault itself rather than to the resource group. Both are read-only data plane roles and only take effect while `enableRbacAuthorization` is `true`.
+
+Writing role assignments requires `Microsoft.Authorization/roleAssignments/write`, which **Contributor does not have** — the deploying principal needs a role such as *Role Based Access Control Administrator* on the target scope.
+
+The Secrets User assignment name matches the one produced by `modules/app-gateway/keyvault-access.bicep`, so granting the same principal from both modules is idempotent.
 
 ## Parameters
 
@@ -49,6 +63,8 @@ module keyVault 'modules/key-vault/main.bicep' = {
 | `allowedIpRanges` | `array` | `[]` | List of allowed IP ranges for Key Vault access (CIDR format or single IP). |
 | `enableDiagnostics` | `bool` | `false` | Enables sending diagnostics to Log Analytics. |
 | `logAnalyticsWorkspaceId` | `string` | `''` | Log Analytics workspace ID for diagnostics. Required when `enableDiagnostics` is `true`. |
+| `secretsUserPrincipalIds` | `array` | `[]` | Principal IDs that receive the Key Vault Secrets User role on the vault. |
+| `certificateUserPrincipalIds` | `array` | `[]` | Principal IDs that receive the Key Vault Certificate User role on the vault. |
 
 ## Outputs
 
