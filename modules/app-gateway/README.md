@@ -12,7 +12,7 @@ Resource names are automatically generated based on the `workloadName` and `envi
 |---|---|
 | Application Gateway | `{workloadName}-agw-{environment}` |
 | Public IP | `{workloadName}-pip-agw-{environment}` |
-| Managed Identity | `{workloadName}-id-agw-{environment}` |
+| Managed Identity | `{workloadName}-id-agw-{environment}` (only when `identityId` is empty) |
 | WAF Policy | `{workloadName}-waf-{environment}` |
 
 Override: use the `name` parameter to define a fully custom name for the Application Gateway, ignoring the automatic convention. Secondary resources (IP, identity, WAF) continue using the automatic convention.
@@ -109,7 +109,8 @@ module appGatewayHttps 'modules/app-gateway/main.bicep' = {
 | `wafRuleSets` | `array` | OWASP `3.2` + `Microsoft_BotManagerRuleSet` `0.1` | Managed rule sets applied by the WAF policy. Each object must contain `ruleSetType` and `ruleSetVersion`. |
 | `enableDiagnostics` | `bool` | `false` | Enables sending diagnostics to Log Analytics. |
 | `logAnalyticsWorkspaceId` | `string` | `''` | Log Analytics workspace ID for diagnostics. Required when `enableDiagnostics` is `true`. |
-| `keyVaultId` | `string` | `''` | Resource ID of an existing Key Vault holding the TLS certificate. When provided, creates a user-assigned managed identity and grants it Key Vault Secrets User on the vault. The vault may live in any resource group or subscription. |
+| `keyVaultId` | `string` | `''` | Resource ID of an existing Key Vault holding the TLS certificate. When provided, the gateway gets an identity granted Key Vault Secrets User on the vault. The vault may live in any resource group or subscription. |
+| `identityId` | `string` | `''` | Resource ID of an existing user-assigned managed identity to attach. When empty, the module creates its own. Reuse a shared platform identity to grant vault access once instead of per gateway. |
 | `grantKeyVaultAccess` | `bool` | `true` | Grants the gateway identity Key Vault Secrets User on the vault. Disable when the deploying identity cannot write role assignments, and grant the access separately. |
 | `certificateSecretName` | `string` | `''` | Name of the Key Vault secret holding the TLS certificate. Referenced without a version so rotation is picked up automatically. |
 | `certificateName` | `string` | `'tls-cert'` | Internal name of the SSL certificate inside the gateway. Referenced by the listeners generated from `sites`. |
@@ -130,7 +131,8 @@ module appGatewayHttps 'modules/app-gateway/main.bicep' = {
 | `name` | `string` | Name of the created Application Gateway. |
 | `publicIpAddress` | `string` | Public IP address of the Application Gateway. |
 | `privateIpAddress` | `string` | Private frontend IP address of the Application Gateway, when configured. |
-| `identityPrincipalId` | `string` | Principal ID of the user-assigned managed identity, used for Key Vault access. |
+| `identityId` | `string` | Resource ID of the managed identity attached to the gateway, created or reused. |
+| `identityPrincipalId` | `string` | Principal ID of the managed identity attached to the gateway, used for Key Vault access. |
 
 ## Changes in 2.0.0
 
@@ -138,7 +140,8 @@ The parameter surface is backwards compatible — nothing was removed — but th
 
 - Frontend port **443** is now always declared, alongside 80. This is what makes an HTTPS listener possible.
 - The SKU sets `family: 'Generation_2'` and `enableHttp2` defaults to `true`.
-- `keyVaultId` now also drives a **Key Vault Secrets User** role assignment for the generated identity; previously it only created the identity.
+- `keyVaultId` now also drives a **Key Vault Secrets User** role assignment for the gateway identity; previously it only created the identity.
+- New `identityId` lets the gateway reuse an existing identity instead of creating one. Note that granting the vault role to a *shared* identity gives every resource attached to it the same read access — use a dedicated identity when that matters.
 - The default `wafRuleSets` adds `Microsoft_BotManagerRuleSet` `0.1` to OWASP `3.2`, and the WAF policy sets the newer enforcement properties. Pass `wafRuleSets` explicitly to keep the previous rule set.
 
 Existing deployments are updated in place.
