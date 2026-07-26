@@ -79,10 +79,11 @@ param enableBootDiagnostics bool = true
 // Variables
 // =============================================================================
 
-// Pattern: {workloadName}-vm-{environment}
+// Pattern: {workloadName}-vm-{environment}, and the subordinate resources with
+// the resource type last: {workloadName}-vm-<type>-{environment}.
 var autoName = '${workloadName}-vm-${environment}'
 var vmName = empty(name) ? autoName : name
-var nicName = '${workloadName}-nic-${environment}'
+var nicName = '${workloadName}-vm-nic-${environment}'
 
 // Determines the private IP allocation type
 var useStaticIp = !empty(privateIpAddress)

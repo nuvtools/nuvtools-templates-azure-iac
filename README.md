@@ -69,6 +69,12 @@ All resources follow the pattern: **`{workloadName}-{abbreviation}-{environment}
 - If the `name` parameter is provided, the automatically generated name is ignored and the value of `name` is used directly.
 - Resources that do not support hyphens (ACR, Storage Account) use the format: **`{workloadName}{abbreviation}{environment}`**
 - The `environment` parameter accepts any string (e.g.: `dev`, `uat`, `hml`, `staging`, `prod`, etc.).
+- A resource a module creates **on behalf of another** keeps the owner's abbreviation and
+  appends its own type, always ending with the environment:
+  **`{workloadName}-{ownerAbbreviation}-{typeAbbreviation}-{environment}`** — e.g.
+  `myapp-agw-pip-dev` (the App Gateway's public IP), `myapp-vgw-pip-dev`, `myapp-vm-nic-dev`,
+  `myapp-ng-ippre-dev`. The resource type is always the last segment before the environment,
+  never before the owner.
 
 ### Naming Parameters
 
@@ -97,7 +103,11 @@ All resources follow the pattern: **`{workloadName}-{abbreviation}-{environment}
 | Log Analytics | `log` | `{workloadName}-log-{env}` | `myapp-log-dev` |
 | App Insights | `appi` | `{workloadName}-appi-{env}` | `myapp-appi-dev` |
 | App Gateway | `agw` | `{workloadName}-agw-{env}` | `myapp-agw-dev` |
-| WAF Policy | `waf` | `{workloadName}-waf-{env}` | `myapp-waf-dev` |
+| WAF Policy | `waf` | `{workloadName}-agw-waf-{env}` | `myapp-agw-waf-dev` |
+| Public IP | `pip` | `{workloadName}-{owner}-pip-{env}` | `myapp-agw-pip-dev` |
+| Public IP Prefix | `ippre` | `{workloadName}-{owner}-ippre-{env}` | `myapp-ng-ippre-dev` |
+| Network Interface | `nic` | `{workloadName}-vm-nic-{env}` | `myapp-vm-nic-dev` |
+| VPN Gateway | `vgw` | `{workloadName}-vgw-{env}` | `myapp-vgw-dev` |
 | API Management | `apim` | `{workloadName}-apim-{env}` | `myapp-apim-dev` |
 | Bastion | `bas` | `{workloadName}-bas-{env}` | `myapp-bas-dev` |
 | Event Hub | `evh` | `{workloadName}-evh-{env}` | `myapp-evh-dev` |

@@ -67,7 +67,7 @@ param logAnalyticsWorkspaceId string = ''
 // Pattern: {workloadName}-bas-{environment}
 var autoName = '${workloadName}-bas-${environment}'
 var bastionName = empty(name) ? autoName : name
-var publicIpName = '${workloadName}-pip-bas-${environment}'
+var publicIpName = '${workloadName}-bas-pip-${environment}'
 
 // =============================================================================
 // Resources

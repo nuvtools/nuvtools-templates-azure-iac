@@ -1,11 +1,11 @@
 # Virtual Machine Windows
 
-Bicep Module for provisioning a Windows virtual machine with a dedicated network interface, managed identity (System Assigned), support for static or dynamic private IP, accelerated networking, boot diagnostics, and time zone configured for Brazil, following a configurable naming convention (`{workloadName}-vm-{environment}`). The network interface follows the pattern `{workloadName}-nic-{environment}`. The `name` parameter allows you to completely override the automatic VM name.
+Bicep Module for provisioning a Windows virtual machine with a dedicated network interface, managed identity (System Assigned), support for static or dynamic private IP, accelerated networking, boot diagnostics, and time zone configured for Brazil, following a configurable naming convention (`{workloadName}-vm-{environment}`). The network interface follows the pattern `{workloadName}-vm-nic-{environment}`. The `name` parameter allows you to completely override the automatic VM name.
 
 ## Usage
 
 ```bicep
-// Generates: myapp-vm-dev and myapp-nic-dev
+// Generates: myapp-vm-dev and myapp-vm-nic-dev
 module vmWindows 'modules/virtual-machine-windows/main.bicep' = {
   name: 'deploy-vm-windows'
   scope: resourceGroup('my-rg')

@@ -1,11 +1,11 @@
 # Bastion Host
 
-Bicep Module for provisioning an Azure Bastion Host with a dedicated public IP, Basic and Standard SKU support, conditional tunneling, IP-based connection, link sharing, and optional diagnostics, following a configurable naming convention (`{workloadName}-bas-{environment}`). The public IP follows the pattern `{workloadName}-pip-bas-{environment}`. The `name` parameter allows you to completely override the automatic name.
+Bicep Module for provisioning an Azure Bastion Host with a dedicated public IP, Basic and Standard SKU support, conditional tunneling, IP-based connection, link sharing, and optional diagnostics, following a configurable naming convention (`{workloadName}-bas-{environment}`). The public IP follows the pattern `{workloadName}-bas-pip-{environment}`. The `name` parameter allows you to completely override the automatic name.
 
 ## Usage
 
 ```bicep
-// Generates: myapp-bas-dev and myapp-pip-bas-dev
+// Generates: myapp-bas-dev and myapp-bas-pip-dev
 module bastion 'modules/bastion/main.bicep' = {
   name: 'deploy-bastion'
   scope: resourceGroup('my-rg')

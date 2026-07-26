@@ -1,6 +1,6 @@
 # Application Gateway
 
-Bicep module for provisioning an Application Gateway with WAF, managed identity, Key Vault TLS certificates, host- and path-based routing, and diagnostics following a configurable naming convention (`{workloadName}-agw-{environment}`). Automatically creates a public IP (`{workloadName}-pip-agw-{environment}`), a user-assigned managed identity for Key Vault access (`{workloadName}-id-agw-{environment}`), and a conditional WAF policy (`{workloadName}-waf-{environment}`).
+Bicep module for provisioning an Application Gateway with WAF, managed identity, Key Vault TLS certificates, host- and path-based routing, and diagnostics following a configurable naming convention (`{workloadName}-agw-{environment}`). Automatically creates a public IP (`{workloadName}-agw-pip-{environment}`), a user-assigned managed identity for Key Vault access (`{workloadName}-agw-id-{environment}`), and a conditional WAF policy (`{workloadName}-agw-waf-{environment}`).
 
 Frontend ports 80 and 443 are always declared, so an HTTPS listener can be wired without reshaping the gateway later.
 
@@ -11,9 +11,9 @@ Resource names are automatically generated based on the `workloadName` and `envi
 | Resource | Pattern |
 |---|---|
 | Application Gateway | `{workloadName}-agw-{environment}` |
-| Public IP | `{workloadName}-pip-agw-{environment}` |
-| Managed Identity | `{workloadName}-id-agw-{environment}` (only when `identityId` is empty) |
-| WAF Policy | `{workloadName}-waf-{environment}` |
+| Public IP | `{workloadName}-agw-pip-{environment}` |
+| Managed Identity | `{workloadName}-agw-id-{environment}` (only when `identityId` is empty) |
+| WAF Policy | `{workloadName}-agw-waf-{environment}` |
 
 Override: use the `name` parameter to define a fully custom name for the Application Gateway, ignoring the automatic convention. Secondary resources (IP, identity, WAF) continue using the automatic convention.
 

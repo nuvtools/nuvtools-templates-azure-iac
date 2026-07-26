@@ -153,12 +153,13 @@ param urlPathMaps array = []
 // Variables
 // =============================================================================
 
-// Pattern: {workloadName}-agw-{environment}
+// Pattern: {workloadName}-agw-{environment}, and the subordinate resources with
+// the resource type last: {workloadName}-agw-<type>-{environment}.
 var autoName = '${workloadName}-agw-${environment}'
 var appGatewayName = empty(name) ? autoName : name
-var publicIpName = '${workloadName}-pip-agw-${environment}'
-var identityName = '${workloadName}-id-agw-${environment}'
-var wafPolicyName = '${workloadName}-waf-${environment}'
+var publicIpName = '${workloadName}-agw-pip-${environment}'
+var identityName = '${workloadName}-agw-id-${environment}'
+var wafPolicyName = '${workloadName}-agw-waf-${environment}'
 
 // The vault may live outside the gateway's own resource group / subscription,
 // so subscription, resource group and name are taken apart from its resource ID:
