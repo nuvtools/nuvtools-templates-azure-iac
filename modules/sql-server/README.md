@@ -2,6 +2,29 @@
 
 Bicep Module for provisioning an Azure SQL Server with managed identity (System Assigned), Azure AD administrator configuration, auditing policy, Advanced Threat Protection, vulnerability assessment, firewall rules, and conditional diagnostics, following a configurable naming convention (`{workloadName}-sql-{environment}`).
 
+## Authentication
+
+Three shapes, chosen by which parameters you pass:
+
+| | `administratorLogin` | `azureAdAdministrator` | `azureAdOnlyAuthentication` |
+|---|---|---|---|
+| SQL only | set | — | `false` |
+| Both | set | set | `false` |
+| Entra only | *empty* | set | `true` |
+
+`azureAdOnlyAuthentication` is ignored when no `azureAdAdministrator` is given — the combination
+would leave the server with no administrator at all.
+
+An Entra-only server is created with **no SQL login**, so there is no shared password anywhere.
+Point `azureAdAdministrator.sid` at a security **group** rather than a person: membership then
+governs access without a redeploy, and the group is `dbo` in every database on the server.
+
+Applications reach an Entra-only server with their managed identity —
+`Authentication=Active Directory Managed Identity;User Id=<client-id>` — which requires a contained
+user created inside each database (`CREATE USER [<identity-name>] FROM EXTERNAL PROVIDER`). That is
+a data-plane operation Bicep cannot perform; it has to run once per database, as a member of the
+Entra admin group.
+
 ## Network access
 
 The production path is `publicNetworkAccess: 'Disabled'` plus a private endpoint — the firewall is then irrelevant. When the server is opened (`publicNetworkAccess: 'Enabled'`, e.g. a development environment reached from a workstation), `allowAzureServices` and `firewallRules` are what let callers in.
@@ -53,11 +76,12 @@ module sqlServer 'modules/sql-server/main.bicep' = {
 | `environment` | `string` | *(required)* | Deployment environment. Accepts any string (e.g., `dev`, `uat`, `hml`, `staging`, `prod`). |
 | `location` | `string` | `'brazilsouth'` | Azure region where the resource will be created. |
 | `tags` | `object` | `{ ManagedBy: 'Bicep', Environment: environment }` | Tags to be applied to the resource. |
-| `administratorLogin` | `string` | *(required)* | SQL Server administrator login. |
-| `administratorPassword` | `string` (secure) | *(required)* | SQL Server administrator password. |
+| `administratorLogin` | `string` | `''` | SQL Server administrator login. Empty creates the server with no SQL authentication — see [Authentication](#authentication). |
+| `administratorPassword` | `string` (secure) | `''` | SQL Server administrator password. Required when `administratorLogin` is set. |
 | `minimalTlsVersion` | `string` | `'1.2'` | Minimum allowed TLS version for connections. |
 | `publicNetworkAccess` | `string` | `'Disabled'` | Defines whether public network access is enabled or disabled. Allowed values: `Enabled`, `Disabled`. |
 | `azureAdAdministrator` | `object` | `{}` | Azure Active Directory administrator configuration. Object with the following properties: `login` (string), `sid` (string), and `tenantId` (string). |
+| `azureAdOnlyAuthentication` | `bool` | `false` | Disables SQL authentication, leaving Entra ID as the only way in. Ignored unless `azureAdAdministrator` is set. |
 | `allowAzureServices` | `bool` | `true` | Adds the `AllowAzureServices` firewall rule (0.0.0.0). Only takes effect when `publicNetworkAccess` is `Enabled`. |
 | `firewallRules` | `array` | `[]` | Additional firewall rules. Array of objects with `name`, `startIpAddress` and `endIpAddress`. Only take effect when `publicNetworkAccess` is `Enabled`. |
 | `enableAuditing` | `bool` | `true` | Enables the SQL Server auditing policy. |

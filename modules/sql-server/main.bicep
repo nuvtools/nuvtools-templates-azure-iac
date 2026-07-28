@@ -32,12 +32,12 @@ param tags object = {
   Environment: environment
 }
 
-@description('SQL Server administrator login.')
-param administratorLogin string
+@description('SQL Server administrator login. Leave empty to create the server without SQL authentication, which requires azureAdAdministrator to be set.')
+param administratorLogin string = ''
 
-@description('SQL Server administrator password.')
+@description('SQL Server administrator password. Required when administratorLogin is set.')
 @secure()
-param administratorPassword string
+param administratorPassword string = ''
 
 @description('Minimum TLS version allowed for connections.')
 param minimalTlsVersion string = '1.2'
@@ -51,6 +51,9 @@ param publicNetworkAccess string = 'Disabled'
 
 @description('Azure Active Directory administrator configuration. Object with properties: login (string), sid (string) and tenantId (string).')
 param azureAdAdministrator object = {}
+
+@description('Disables SQL authentication, leaving Entra ID as the only way to connect. Requires azureAdAdministrator to be set: without it the server would have no administrator at all.')
+param azureAdOnlyAuthentication bool = false
 
 @description('Adds a firewall rule allowing access from Azure services (0.0.0.0). Only takes effect when publicNetworkAccess is Enabled.')
 param allowAzureServices bool = true
@@ -90,6 +93,14 @@ var sqlServerName = empty(name) ? autoName : name
 // Checks if the Azure AD administrator was provided
 var hasAzureAdAdmin = !empty(azureAdAdministrator)
 
+// Entra-only is only coherent with an Entra administrator to fall back on; asking for it
+// without one would produce a server nobody can sign in to.
+var entraOnly = azureAdOnlyAuthentication && hasAzureAdAdmin
+
+// A server created without a SQL login is the Entra-only case. Sending empty strings
+// instead of omitting the properties is rejected, so they collapse to null.
+var hasSqlAdmin = !empty(administratorLogin)
+
 // =============================================================================
 // Resources
 // =============================================================================
@@ -99,8 +110,8 @@ resource sqlServer 'Microsoft.Sql/servers@2025-01-01' = {
   location: location
   tags: tags
   properties: {
-    administratorLogin: administratorLogin
-    administratorLoginPassword: administratorPassword
+    administratorLogin: hasSqlAdmin ? administratorLogin : null
+    administratorLoginPassword: hasSqlAdmin ? administratorPassword : null
     version: '12.0'
     minimalTlsVersion: minimalTlsVersion
     publicNetworkAccess: publicNetworkAccess
@@ -110,7 +121,7 @@ resource sqlServer 'Microsoft.Sql/servers@2025-01-01' = {
           login: azureAdAdministrator.login
           sid: azureAdAdministrator.sid
           tenantId: azureAdAdministrator.tenantId
-          azureADOnlyAuthentication: false
+          azureADOnlyAuthentication: entraOnly
         }
       : null
   }
