@@ -1,6 +1,12 @@
 # SQL Server
 
-Bicep Module for provisioning an Azure SQL Server with managed identity (System Assigned), Azure AD administrator configuration, auditing policy, Advanced Threat Protection, vulnerability assessment, and conditional diagnostics, following a configurable naming convention (`{workloadName}-sql-{environment}`).
+Bicep Module for provisioning an Azure SQL Server with managed identity (System Assigned), Azure AD administrator configuration, auditing policy, Advanced Threat Protection, vulnerability assessment, firewall rules, and conditional diagnostics, following a configurable naming convention (`{workloadName}-sql-{environment}`).
+
+## Network access
+
+The production path is `publicNetworkAccess: 'Disabled'` plus a private endpoint — the firewall is then irrelevant. When the server is opened (`publicNetworkAccess: 'Enabled'`, e.g. a development environment reached from a workstation), `allowAzureServices` and `firewallRules` are what let callers in.
+
+The rules are created regardless of `publicNetworkAccess`: they are inert while the server is closed, and gating them would delete rules already deployed alongside a private endpoint.
 
 ## Naming Convention
 
@@ -24,6 +30,11 @@ module sqlServer 'modules/sql-server/main.bicep' = {
     enableAuditing: true
     storageAccountId: '/subscriptions/.../storageAccounts/myauditsa'
     enableAdvancedThreatProtection: true
+    // Public access reached from known IPs (development environments).
+    publicNetworkAccess: 'Enabled'
+    firewallRules: [
+      { name: 'dev-workstation', startIpAddress: '203.0.113.10', endIpAddress: '203.0.113.10' }
+    ]
     azureAdAdministrator: {
       login: 'admin@contoso.com'
       sid: '00000000-0000-0000-0000-000000000000'
@@ -47,6 +58,8 @@ module sqlServer 'modules/sql-server/main.bicep' = {
 | `minimalTlsVersion` | `string` | `'1.2'` | Minimum allowed TLS version for connections. |
 | `publicNetworkAccess` | `string` | `'Disabled'` | Defines whether public network access is enabled or disabled. Allowed values: `Enabled`, `Disabled`. |
 | `azureAdAdministrator` | `object` | `{}` | Azure Active Directory administrator configuration. Object with the following properties: `login` (string), `sid` (string), and `tenantId` (string). |
+| `allowAzureServices` | `bool` | `true` | Adds the `AllowAzureServices` firewall rule (0.0.0.0). Only takes effect when `publicNetworkAccess` is `Enabled`. |
+| `firewallRules` | `array` | `[]` | Additional firewall rules. Array of objects with `name`, `startIpAddress` and `endIpAddress`. Only take effect when `publicNetworkAccess` is `Enabled`. |
 | `enableAuditing` | `bool` | `true` | Enables the SQL Server auditing policy. |
 | `storageAccountId` | `string` | `''` | Storage account ID used to store audit logs. Required when `enableAuditing` is `true`. |
 | `enableAdvancedThreatProtection` | `bool` | `true` | Enables Advanced Threat Protection. |
