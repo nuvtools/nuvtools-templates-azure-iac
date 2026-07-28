@@ -52,6 +52,12 @@ param publicNetworkAccess string = 'Disabled'
 @description('Azure Active Directory administrator configuration. Object with properties: login (string), sid (string) and tenantId (string).')
 param azureAdAdministrator object = {}
 
+@description('Adds a firewall rule allowing access from Azure services (0.0.0.0). Only takes effect when publicNetworkAccess is Enabled.')
+param allowAzureServices bool = true
+
+@description('Additional firewall rules. Array of objects with name, startIpAddress and endIpAddress. Only take effect when publicNetworkAccess is Enabled.')
+param firewallRules array = []
+
 @description('Enables the SQL Server auditing policy.')
 param enableAuditing bool = true
 
@@ -114,7 +120,7 @@ resource sqlServer 'Microsoft.Sql/servers@2025-01-01' = {
 }
 
 // Firewall rule to allow access from Azure services (0.0.0.0 - 0.0.0.0)
-resource firewallRuleAllowAzureServices 'Microsoft.Sql/servers/firewallRules@2025-01-01' = {
+resource firewallRuleAllowAzureServices 'Microsoft.Sql/servers/firewallRules@2025-01-01' = if (allowAzureServices) {
   name: 'AllowAzureServices'
   parent: sqlServer
   properties: {
@@ -122,6 +128,20 @@ resource firewallRuleAllowAzureServices 'Microsoft.Sql/servers/firewallRules@202
     endIpAddress: '0.0.0.0'
   }
 }
+
+// Additional firewall rules. Not gated on publicNetworkAccess: the rules are inert
+// while the server is closed, and gating them would delete rules already deployed
+// alongside a private endpoint.
+resource customFirewallRules 'Microsoft.Sql/servers/firewallRules@2025-01-01' = [
+  for rule in firewallRules: {
+    name: rule.name
+    parent: sqlServer
+    properties: {
+      startIpAddress: rule.startIpAddress
+      endIpAddress: rule.endIpAddress
+    }
+  }
+]
 
 // Auditing policy - conditionally enabled
 resource auditingSettings 'Microsoft.Sql/servers/auditingSettings@2025-01-01' = if (enableAuditing) {
