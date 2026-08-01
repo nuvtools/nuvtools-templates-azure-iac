@@ -107,6 +107,9 @@ param scaleRules array = []
 @description('When true, injects the app user-assigned identity as the default identity of every custom KEDA scale rule that does not set one (identity-based scaler auth without repeating the resource ID per rule).')
 param scaleRulesUseAppIdentity bool = false
 
+@description('Container probes (liveness, readiness, startup) passed through to the container spec. Empty keeps the Container Apps defaults, which probe the target port over TCP only.')
+param probes array = []
+
 @description('App runtime stack passed to configuration.runtime (e.g., { dotnet: { autoConfigureDataProtection: true } } or { java: { enableMetrics: true } }). Empty omits the runtime block.')
 param runtime object = {}
 
@@ -304,6 +307,7 @@ resource containerApp 'Microsoft.App/containerApps@2025-10-02-preview' = {
             memory: memory
           }
           env: containerEnv
+          probes: empty(probes) ? null : probes
         }
       ]
       scale: {
