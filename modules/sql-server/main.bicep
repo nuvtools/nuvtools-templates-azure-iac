@@ -55,10 +55,10 @@ param azureAdAdministrator object = {}
 @description('Disables SQL authentication, leaving Entra ID as the only way to connect. Requires azureAdAdministrator to be set: without it the server would have no administrator at all.')
 param azureAdOnlyAuthentication bool = false
 
-@description('Adds a firewall rule allowing access from Azure services (0.0.0.0). Only takes effect when publicNetworkAccess is Enabled.')
+@description('Adds a firewall rule allowing access from Azure services (0.0.0.0). Ignored while publicNetworkAccess is Disabled — Azure rejects the write rather than storing an inert rule.')
 param allowAzureServices bool = true
 
-@description('Additional firewall rules. Array of objects with name, startIpAddress and endIpAddress. Only take effect when publicNetworkAccess is Enabled.')
+@description('Additional firewall rules. Array of objects with name, startIpAddress and endIpAddress. Ignored while publicNetworkAccess is Disabled — Azure rejects the write rather than storing inert rules.')
 param firewallRules array = []
 
 @description('Enables the SQL Server auditing policy.')
@@ -101,6 +101,30 @@ var entraOnly = azureAdOnlyAuthentication && hasAzureAdAdmin
 // instead of omitting the properties is rejected, so they collapse to null.
 var hasSqlAdmin = !empty(administratorLogin)
 
+// Every firewall rule below hangs off this. A closed server does not merely ignore
+// firewall rules — it refuses to have any, failing the deployment with
+// DenyPublicEndpointEnabled, so the rules must not be submitted at all.
+var publicAccessEnabled = publicNetworkAccess == 'Enabled'
+
+// The auditing and vulnerability-assessment policies are given a storage account by
+// resource ID but want a blob endpoint URI, so the endpoint is read off the account
+// itself. Composing it as a string would both hardcode a cloud-specific suffix and
+// trip the no-hardcoded-env-urls rule. The placeholder keeps the segment indexing
+// valid when no account is supplied; the resources that use it are off in that case.
+var auditStorageIdSegments = split(
+  empty(storageAccountId) ? resourceId('Microsoft.Storage/storageAccounts', 'placeholder') : storageAccountId,
+  '/'
+)
+var hasAuditStorage = enableAuditing && !empty(storageAccountId)
+
+var vulnerabilityStorageIdSegments = split(
+  empty(vulnerabilityAssessmentStorageAccountId)
+    ? resourceId('Microsoft.Storage/storageAccounts', 'placeholder')
+    : vulnerabilityAssessmentStorageAccountId,
+  '/'
+)
+var hasVulnerabilityStorage = enableVulnerabilityAssessment && !empty(vulnerabilityAssessmentStorageAccountId)
+
 // =============================================================================
 // Resources
 // =============================================================================
@@ -131,7 +155,7 @@ resource sqlServer 'Microsoft.Sql/servers@2025-01-01' = {
 }
 
 // Firewall rule to allow access from Azure services (0.0.0.0 - 0.0.0.0)
-resource firewallRuleAllowAzureServices 'Microsoft.Sql/servers/firewallRules@2025-01-01' = if (allowAzureServices) {
+resource firewallRuleAllowAzureServices 'Microsoft.Sql/servers/firewallRules@2025-01-01' = if (allowAzureServices && publicAccessEnabled) {
   name: 'AllowAzureServices'
   parent: sqlServer
   properties: {
@@ -140,11 +164,10 @@ resource firewallRuleAllowAzureServices 'Microsoft.Sql/servers/firewallRules@202
   }
 }
 
-// Additional firewall rules. Not gated on publicNetworkAccess: the rules are inert
-// while the server is closed, and gating them would delete rules already deployed
-// alongside a private endpoint.
+// Additional firewall rules, on the same gate: a server reached over a private
+// endpoint has publicNetworkAccess Disabled and rejects every rule write.
 resource customFirewallRules 'Microsoft.Sql/servers/firewallRules@2025-01-01' = [
-  for rule in firewallRules: {
+  for rule in (publicAccessEnabled ? firewallRules : []): {
     name: rule.name
     parent: sqlServer
     properties: {
@@ -154,15 +177,26 @@ resource customFirewallRules 'Microsoft.Sql/servers/firewallRules@2025-01-01' = 
   }
 ]
 
-// Auditing policy - conditionally enabled
+// Storage account receiving the audit log, read for its blob endpoint and key. May
+// live in another resource group or subscription, hence the parsed scope.
+resource auditStorageAccount 'Microsoft.Storage/storageAccounts@2025-01-01' existing = if (hasAuditStorage) {
+  name: last(auditStorageIdSegments)
+  scope: resourceGroup(auditStorageIdSegments[2], auditStorageIdSegments[4])
+}
+
+// Auditing policy - conditionally enabled. With no storage account it still audits to
+// Log Analytics through isAzureMonitorTargetEnabled; the storage properties then have
+// to be absent rather than empty, which ARM rejects.
 resource auditingSettings 'Microsoft.Sql/servers/auditingSettings@2025-01-01' = if (enableAuditing) {
   name: 'default'
   parent: sqlServer
   properties: {
     state: 'Enabled'
     isAzureMonitorTargetEnabled: true
-    storageEndpoint: !empty(storageAccountId) ? '${storageAccountId}' : ''
-    retentionDays: 90
+    storageEndpoint: hasAuditStorage ? auditStorageAccount!.properties.primaryEndpoints.blob : null
+    storageAccountSubscriptionId: hasAuditStorage ? auditStorageIdSegments[2] : null
+    storageAccountAccessKey: hasAuditStorage ? auditStorageAccount!.listKeys().keys[0].value : null
+    retentionDays: hasAuditStorage ? 90 : null
   }
 }
 
@@ -175,12 +209,20 @@ resource securityAlertPolicy 'Microsoft.Sql/servers/securityAlertPolicies@2025-0
   }
 }
 
-// Vulnerability assessment - conditionally enabled
-resource vulnerabilityAssessment 'Microsoft.Sql/servers/vulnerabilityAssessments@2025-01-01' = if (enableVulnerabilityAssessment && !empty(vulnerabilityAssessmentStorageAccountId)) {
+// Storage account receiving the scan results, read for its blob endpoint and key.
+resource vulnerabilityStorageAccount 'Microsoft.Storage/storageAccounts@2025-01-01' existing = if (hasVulnerabilityStorage) {
+  name: last(vulnerabilityStorageIdSegments)
+  scope: resourceGroup(vulnerabilityStorageIdSegments[2], vulnerabilityStorageIdSegments[4])
+}
+
+// Vulnerability assessment - conditionally enabled. primaryEndpoints.blob already
+// carries its trailing slash, so the container name appends directly.
+resource vulnerabilityAssessment 'Microsoft.Sql/servers/vulnerabilityAssessments@2025-01-01' = if (hasVulnerabilityStorage) {
   name: 'default'
   parent: sqlServer
   properties: {
-    storageContainerPath: '${vulnerabilityAssessmentStorageAccountId}vulnerability-assessment'
+    storageContainerPath: '${vulnerabilityStorageAccount!.properties.primaryEndpoints.blob}vulnerability-assessment'
+    storageAccountAccessKey: vulnerabilityStorageAccount!.listKeys().keys[0].value
     recurringScans: {
       isEnabled: true
       emailSubscriptionAdmins: true
