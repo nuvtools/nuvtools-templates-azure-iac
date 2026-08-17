@@ -14,14 +14,16 @@ module containerAppsEnvironment 'modules/container-apps-environment/main.bicep' 
   params: {
     workloadName: 'myapp'
     environment: 'dev'
-    infrastructureSubnetId: '<undelegated subnet id, >= /27>'
+    infrastructureSubnetId: '<subnet delegated to Microsoft.App/environments, >= /27>'
     logAnalyticsWorkspaceName: logAnalytics.outputs.name
     internal: true
   }
 }
 ```
 
-> **Subnet requirement.** For a workload-profiles environment the infrastructure subnet must be **undelegated** and at least **/27**. (A consumption-only environment instead requires a `/23` subnet delegated to `Microsoft.App/environments`.)
+> **Subnet requirement.** The infrastructure subnet must be **delegated to `Microsoft.App/environments`** and at least **/27**. This module always passes `workloadProfiles`, so it always creates a workload-profiles environment — the consumption-only environment, which is the one that requires an *undelegated* `/23`, is not reachable through it. Removing the delegation to satisfy that older requirement breaks the deploy.
+>
+> The subnet is also consumed exclusively by the environment: it cannot hold other resources, and the delegation is what reserves it.
 
 ## Parameters
 
@@ -32,7 +34,7 @@ module containerAppsEnvironment 'modules/container-apps-environment/main.bicep' 
 | `environment` | `string` | *(required)* | Deployment environment (e.g., `dev`, `uat`, `staging`, `prod`). |
 | `location` | `string` | `'brazilsouth'` | Azure region where the resource will be created. |
 | `tags` | `object` | `{ ManagedBy: 'Bicep', Environment: environment }` | Tags to be applied to the resource. |
-| `infrastructureSubnetId` | `string` | *(required)* | Resource ID of the infrastructure subnet. For workload profiles it must be undelegated and at least /27. |
+| `infrastructureSubnetId` | `string` | *(required)* | Resource ID of the infrastructure subnet. Must be delegated to `Microsoft.App/environments` and at least /27. |
 | `logAnalyticsWorkspaceName` | `string` | *(required)* | Name of the Log Analytics workspace (same resource group) that receives container app logs. |
 | `internal` | `bool` | `true` | Restricts the environment to a private static IP inside the VNet (no public endpoint) when true. |
 | `zoneRedundant` | `bool` | `false` | Spreads replicas across availability zones when true. |

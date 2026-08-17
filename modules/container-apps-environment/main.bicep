@@ -34,7 +34,7 @@ param tags object = {
   Environment: environment
 }
 
-@description('Resource ID of the infrastructure subnet. For workload-profile environments the subnet must be undelegated and at least /27.')
+@description('Resource ID of the infrastructure subnet. This module always creates a workload-profiles environment, so the subnet must be delegated to Microsoft.App/environments and be at least /27.')
 param infrastructureSubnetId string
 
 @description('Name of the Log Analytics workspace (same resource group) that receives container app logs.')
