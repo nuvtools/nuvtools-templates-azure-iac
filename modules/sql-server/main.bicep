@@ -61,7 +61,7 @@ param allowAzureServices bool = true
 @description('Additional firewall rules. Array of objects with name, startIpAddress and endIpAddress. Ignored while publicNetworkAccess is Disabled — Azure rejects the write rather than storing inert rules.')
 param firewallRules array = []
 
-@description('Enables the SQL Server auditing policy.')
+@description('Enables the SQL Server auditing policy. With logAnalyticsWorkspaceId set, the audit trail is also routed to that workspace and becomes queryable with KQL; supply one, because an audit nobody can query is not an audit.')
 param enableAuditing bool = true
 
 @description('Storage account ID used to store audit logs. Required when enableAuditing is true.')
@@ -79,7 +79,7 @@ param vulnerabilityAssessmentStorageAccountId string = ''
 @description('Enables sending diagnostics to Log Analytics.')
 param enableDiagnostics bool = false
 
-@description('Log Analytics workspace ID for sending diagnostics. Required when enableDiagnostics is true.')
+@description('Log Analytics workspace ID. Required when enableDiagnostics is true, and also consumed by enableAuditing to make the audit trail queryable with KQL.')
 param logAnalyticsWorkspaceId string = ''
 
 // =============================================================================
@@ -198,6 +198,38 @@ resource auditingSettings 'Microsoft.Sql/servers/auditingSettings@2025-01-01' = 
     storageAccountAccessKey: hasAuditStorage ? auditStorageAccount!.listKeys().keys[0].value : null
     retentionDays: hasAuditStorage ? 90 : null
   }
+}
+
+// Server-level auditing surfaces on the master database, not on the server: the server
+// resource exposes no log categories at all, only AllMetrics. Without this setting
+// isAzureMonitorTargetEnabled above is inert and the audit trail exists nowhere but the
+// storage account, where nobody reads it.
+resource masterDatabase 'Microsoft.Sql/servers/databases@2025-01-01' existing = {
+  name: 'master'
+  parent: sqlServer
+}
+
+// Deliberately the audit category and nothing else. The operational log categories belong
+// to the sql-database module, on the databases they describe; DevOpsOperationsAudit is a
+// separate trail with its own reason to exist and is not switched on by proxy here.
+// Tied to enableAuditing rather than enableDiagnostics: an audit that cannot be queried is
+// the failure this closes, so it follows auditing wherever a workspace is available.
+#disable-next-line use-recent-api-versions
+resource auditDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (enableAuditing && !empty(logAnalyticsWorkspaceId)) {
+  name: '${sqlServerName}-audit-diag'
+  scope: masterDatabase
+  properties: {
+    workspaceId: logAnalyticsWorkspaceId
+    logs: [
+      {
+        category: 'SQLSecurityAuditEvents'
+        enabled: true
+      }
+    ]
+  }
+  dependsOn: [
+    auditingSettings
+  ]
 }
 
 // Security alert policy (Advanced Threat Protection) - conditionally enabled

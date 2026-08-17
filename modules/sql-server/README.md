@@ -29,7 +29,24 @@ Entra admin group.
 
 The production path is `publicNetworkAccess: 'Disabled'` plus a private endpoint — the firewall is then irrelevant. When the server is opened (`publicNetworkAccess: 'Enabled'`, e.g. a development environment reached from a workstation), `allowAzureServices` and `firewallRules` are what let callers in.
 
-The rules are created regardless of `publicNetworkAccess`: they are inert while the server is closed, and gating them would delete rules already deployed alongside a private endpoint.
+No rule is submitted while `publicNetworkAccess` is `Disabled`. A closed server does not hold inert rules — it refuses to have any, and the deployment fails with `DenyPublicEndpointEnabled`.
+
+## Auditing
+
+`enableAuditing` writes the trail to two independent places, and neither implies the other:
+
+| sink | driven by | retention |
+|---|---|---|
+| Log Analytics | `logAnalyticsWorkspaceId` | the workspace's |
+| Storage account | `storageAccountId` | 90 days |
+
+**Server-level auditing surfaces on the `master` database, not on the server.** The server resource exposes no log categories at all — only `AllMetrics` — so the module puts a second diagnostic setting (`{name}-audit-diag`, category `SQLSecurityAuditEvents`) on `master`. Without it `isAzureMonitorTargetEnabled` is set but nothing carries the records, and the audit exists only as blobs.
+
+That setting follows `enableAuditing`, not `enableDiagnostics`: an audit trail that cannot be queried is the failure this closes, so it is not optional telemetry. Supply a workspace whenever you enable auditing.
+
+Only `SQLSecurityAuditEvents` is enabled. `DevOpsOperationsAudit` is a separate trail with its own reason to exist and is not switched on by proxy, and the operational log categories belong to the `sql-database` module, on the databases they actually describe.
+
+`storageAccountId` is optional — Log Analytics alone is a complete configuration. When supplied, the module reads the account's blob endpoint and key off the account itself, so it may live in another resource group or subscription.
 
 ## Naming Convention
 
@@ -82,15 +99,15 @@ module sqlServer 'modules/sql-server/main.bicep' = {
 | `publicNetworkAccess` | `string` | `'Disabled'` | Defines whether public network access is enabled or disabled. Allowed values: `Enabled`, `Disabled`. |
 | `azureAdAdministrator` | `object` | `{}` | Azure Active Directory administrator configuration. Object with the following properties: `login` (string), `sid` (string), and `tenantId` (string). |
 | `azureAdOnlyAuthentication` | `bool` | `false` | Disables SQL authentication, leaving Entra ID as the only way in. Ignored unless `azureAdAdministrator` is set. |
-| `allowAzureServices` | `bool` | `true` | Adds the `AllowAzureServices` firewall rule (0.0.0.0). Only takes effect when `publicNetworkAccess` is `Enabled`. |
-| `firewallRules` | `array` | `[]` | Additional firewall rules. Array of objects with `name`, `startIpAddress` and `endIpAddress`. Only take effect when `publicNetworkAccess` is `Enabled`. |
-| `enableAuditing` | `bool` | `true` | Enables the SQL Server auditing policy. |
-| `storageAccountId` | `string` | `''` | Storage account ID used to store audit logs. Required when `enableAuditing` is `true`. |
+| `allowAzureServices` | `bool` | `true` | Adds the `AllowAzureServices` firewall rule (0.0.0.0). Ignored while `publicNetworkAccess` is `Disabled` — Azure rejects the write rather than storing an inert rule. |
+| `firewallRules` | `array` | `[]` | Additional firewall rules. Array of objects with `name`, `startIpAddress` and `endIpAddress`. Ignored while `publicNetworkAccess` is `Disabled` — Azure rejects the write rather than storing inert rules. |
+| `enableAuditing` | `bool` | `true` | Enables the SQL Server auditing policy. With `logAnalyticsWorkspaceId` set, the trail is also routed to that workspace and becomes queryable with KQL. |
+| `storageAccountId` | `string` | `''` | Storage account receiving the audit log. Optional: auditing to Log Analytics alone is a complete configuration. |
 | `enableAdvancedThreatProtection` | `bool` | `true` | Enables Advanced Threat Protection. |
 | `enableVulnerabilityAssessment` | `bool` | `false` | Enables Vulnerability Assessment. |
 | `vulnerabilityAssessmentStorageAccountId` | `string` | `''` | Storage account ID to store vulnerability assessment results. Required when `enableVulnerabilityAssessment` is `true`. |
 | `enableDiagnostics` | `bool` | `false` | Enables sending diagnostics to Log Analytics. |
-| `logAnalyticsWorkspaceId` | `string` | `''` | Log Analytics workspace ID for sending diagnostics. Required when `enableDiagnostics` is `true`. |
+| `logAnalyticsWorkspaceId` | `string` | `''` | Log Analytics workspace ID. Required when `enableDiagnostics` is `true`, and also consumed by `enableAuditing` to make the audit trail queryable. |
 
 ## Outputs
 
