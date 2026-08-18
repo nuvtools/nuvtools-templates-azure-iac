@@ -27,6 +27,7 @@ nuvtools-templates-azure-iac/
 │   ├── policy/                       # Azure Policy
 │   ├── postgresql-database/          # PostgreSQL Database
 │   ├── postgresql-flexible-server/   # PostgreSQL Flexible Server
+│   ├── private-dns-resolver/         # DNS Private Resolver + inbound endpoint
 │   ├── private-dns-zone/             # Private DNS + VNet links
 │   ├── private-endpoint/             # Generic Private Endpoint
 │   ├── redis-cache/                  # Redis Cache
