@@ -173,7 +173,7 @@ var usePrivateAccess = !empty(delegatedSubnetResourceId)
 // Resources
 // =============================================================================
 
-resource postgresqlServer 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
+resource postgresqlServer 'Microsoft.DBforPostgreSQL/flexibleServers@2025-08-01' = {
   name: postgresqlServerName
   location: location
   tags: tags
@@ -215,7 +215,7 @@ resource postgresqlServer 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01'
 }
 
 // Firewall rule to allow access from Azure services (0.0.0.0 - 0.0.0.0) - public access only
-resource firewallRuleAllowAzureServices 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = if (!usePrivateAccess && allowAzureServices) {
+resource firewallRuleAllowAzureServices 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2025-08-01' = if (!usePrivateAccess && allowAzureServices) {
   name: 'AllowAzureServices'
   parent: postgresqlServer
   properties: {
@@ -225,7 +225,7 @@ resource firewallRuleAllowAzureServices 'Microsoft.DBforPostgreSQL/flexibleServe
 }
 
 // Additional firewall rules - public access only
-resource customFirewallRules 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = [
+resource customFirewallRules 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2025-08-01' = [
   for rule in firewallRules: if (!usePrivateAccess) {
     name: rule.name
     parent: postgresqlServer
@@ -239,7 +239,7 @@ resource customFirewallRules 'Microsoft.DBforPostgreSQL/flexibleServers/firewall
 // Entra ID administrators (users, groups, managed identities). Created one at a time
 // because the flexible server only accepts a single administrator operation concurrently.
 @batchSize(1)
-resource entraAdmins 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2024-08-01' = [
+resource entraAdmins 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2025-08-01' = [
   for admin in entraAdministrators: {
     name: admin.objectId
     parent: postgresqlServer

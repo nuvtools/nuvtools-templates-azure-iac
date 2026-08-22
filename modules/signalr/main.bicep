@@ -79,7 +79,7 @@ var signalRName = empty(name) ? autoName : name
 // Resources
 // =============================================================================
 
-resource signalRService 'Microsoft.SignalRService/signalR@2024-08-01-preview' = {
+resource signalRService 'Microsoft.SignalRService/signalR@2024-03-01' = {
   name: signalRName
   location: location
   tags: tags

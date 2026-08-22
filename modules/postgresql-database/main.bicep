@@ -45,11 +45,11 @@ var databaseName = empty(name) ? autoName : name
 // =============================================================================
 
 // Reference to the existing PostgreSQL Flexible Server
-resource postgresqlServer 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' existing = {
+resource postgresqlServer 'Microsoft.DBforPostgreSQL/flexibleServers@2025-08-01' existing = {
   name: postgresqlServerName
 }
 
-resource postgresqlDatabase 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-01' = {
+resource postgresqlDatabase 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2025-08-01' = {
   name: databaseName
   parent: postgresqlServer
   properties: {
