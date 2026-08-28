@@ -25,7 +25,7 @@ param workloadName string
 @description('Deployment environment (e.g., dev, uat, hml, staging, prod).')
 param environment string
 
-@description('Suffix appended to the generated name, to distinguish several tables in one environment (e.g. "onsite" gives {workloadName}-rt-onsite-{environment}). Ignored when name is provided.')
+@description('Discriminator inserted before the resource type abbreviation, to distinguish several tables in one environment (e.g. "onsite" gives {workloadName}-onsite-rt-{environment}). Ignored when name is provided.')
 param nameSuffix string = ''
 
 @description('Azure region where the resource will be created.')
@@ -51,10 +51,10 @@ param disableBgpRoutePropagation bool = false
 // Variables
 // =============================================================================
 
-// Pattern: {workloadName}-rt-{environment}, or {workloadName}-rt-{nameSuffix}-{environment} (CAF: rt)
+// Pattern: {workloadName}-rt-{environment}, or {workloadName}-{nameSuffix}-rt-{environment} (CAF: rt)
 var autoName = empty(nameSuffix)
   ? '${workloadName}-rt-${environment}'
-  : '${workloadName}-rt-${nameSuffix}-${environment}'
+  : '${workloadName}-${nameSuffix}-rt-${environment}'
 var routeTableName = empty(name) ? autoName : name
 
 // =============================================================================

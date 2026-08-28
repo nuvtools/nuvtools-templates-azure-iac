@@ -24,7 +24,7 @@ param workloadName string
 @description('Deployment environment (e.g., dev, uat, hml, staging, prod).')
 param environment string
 
-@description('Suffix appended to the generated name, to distinguish several addresses in one environment. Ignored when name is provided.')
+@description('Discriminator inserted before the resource type abbreviation, to distinguish several addresses in one environment (e.g. "afw" gives {workloadName}-afw-pip-{environment}). Ignored when name is provided.')
 param nameSuffix string = ''
 
 @description('Azure region where the resource will be created.')
@@ -67,10 +67,10 @@ param domainNameLabel string = ''
 // Variables
 // =============================================================================
 
-// Pattern: {workloadName}-pip-{environment}, or {workloadName}-pip-{nameSuffix}-{environment} (CAF: pip)
+// Pattern: {workloadName}-pip-{environment}, or {workloadName}-{nameSuffix}-pip-{environment} (CAF: pip)
 var autoName = empty(nameSuffix)
   ? '${workloadName}-pip-${environment}'
-  : '${workloadName}-pip-${nameSuffix}-${environment}'
+  : '${workloadName}-${nameSuffix}-pip-${environment}'
 var publicIpName = empty(name) ? autoName : name
 
 // =============================================================================
