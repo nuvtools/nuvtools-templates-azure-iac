@@ -50,6 +50,11 @@ param collation string = 'SQL_Latin1_General_CP1_CI_AS'
 @description('Time in minutes for automatic pause of the serverless database. A value of -1 disables automatic pause.')
 param autoPauseDelay int = 60
 
+@description('''Emit the serverless-only properties (autoPauseDelay, minCapacity). Must be false for
+the DTU tiers — Basic, Standard and Premium reject them outright — and for provisioned vCore
+databases that should not auto-pause.''')
+param enableServerless bool = true
+
 @description('Minimum vCore capacity for the serverless database.')
 param minCapacity string = '0.5'
 
@@ -99,8 +104,8 @@ resource sqlDatabase 'Microsoft.Sql/servers/databases@2025-01-01' = {
   properties: {
     collation: collation
     maxSizeBytes: maxSizeBytes
-    autoPauseDelay: autoPauseDelay
-    minCapacity: json(minCapacity)
+    autoPauseDelay: enableServerless ? autoPauseDelay : null
+    minCapacity: enableServerless ? json(minCapacity) : null
     zoneRedundant: zoneRedundant
     createMode: 'Default'
     requestedBackupStorageRedundancy: zoneRedundant ? 'Zone' : 'Local'

@@ -47,6 +47,23 @@ param subnetId string
 @description('Resource ID of an existing public IP to associate with the firewall.')
 param publicIpId string
 
+@description('''Resource ID of AzureFirewallManagementSubnet (minimum /26). REQUIRED when skuTier is
+Basic: a Basic firewall runs a separate management plane and is rejected without it. Leave empty for
+Standard and Premium, which have no management IP configuration.''')
+param managementSubnetId string = ''
+
+@description('Resource ID of an existing public IP for the management plane. Required alongside managementSubnetId; it cannot be shared with publicIpId.')
+param managementPublicIpId string = ''
+
+@description('Availability zones for the firewall. Empty deploys non-zonal.')
+param zones array = []
+
+@description('''Address ranges the firewall treats as private and therefore does NOT SNAT. Empty
+keeps the Azure default (IANA RFC 1918). Set ['255.255.255.255/32'] to SNAT everything, including
+traffic to private destinations — needed when replies must return via a route that only knows the
+firewall's own address. Set ['0.0.0.0/0'] to disable SNAT entirely.''')
+param snatPrivateRanges array = []
+
 @description('''Egress network rules. Array of objects:
 { name, sourceAddresses[], destinationAddresses[], destinationPorts[], protocols[] }.''')
 param networkRules array = []
@@ -83,6 +100,9 @@ resource firewallPolicy 'Microsoft.Network/firewallPolicies@2025-07-01' = {
     sku: {
       tier: skuTier
     }
+    snat: empty(snatPrivateRanges) ? null : {
+      privateRanges: snatPrivateRanges
+    }
   }
 }
 
@@ -118,6 +138,7 @@ resource firewall 'Microsoft.Network/azureFirewalls@2025-07-01' = {
   name: firewallName
   location: location
   tags: tags
+  zones: zones
   properties: {
     sku: {
       name: 'AZFW_VNet'
@@ -136,6 +157,17 @@ resource firewall 'Microsoft.Network/azureFirewalls@2025-07-01' = {
         }
       }
     ]
+    managementIpConfiguration: empty(managementSubnetId) ? null : {
+      name: 'management'
+      properties: {
+        subnet: {
+          id: managementSubnetId
+        }
+        publicIPAddress: {
+          id: managementPublicIpId
+        }
+      }
+    }
     firewallPolicy: {
       id: firewallPolicy.id
     }

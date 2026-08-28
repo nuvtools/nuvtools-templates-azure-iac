@@ -55,6 +55,15 @@ param azureAdAdministrator object = {}
 @description('Disables SQL authentication, leaving Entra ID as the only way to connect. Requires azureAdAdministrator to be set: without it the server would have no administrator at all.')
 param azureAdOnlyAuthentication bool = false
 
+@description('''Principal type of the Entra-ID administrator: User, Group or Application. Group is
+the usual choice, so the admin survives people joining and leaving.''')
+@allowed([
+  'User'
+  'Group'
+  'Application'
+])
+param azureAdAdministratorPrincipalType string = 'Group'
+
 @description('Adds a firewall rule allowing access from Azure services (0.0.0.0). Ignored while publicNetworkAccess is Disabled — Azure rejects the write rather than storing an inert rule.')
 param allowAzureServices bool = true
 
@@ -142,9 +151,10 @@ resource sqlServer 'Microsoft.Sql/servers@2025-01-01' = {
     administrators: hasAzureAdAdmin
       ? {
           administratorType: 'ActiveDirectory'
+          principalType: azureAdAdministratorPrincipalType
           login: azureAdAdministrator.login
           sid: azureAdAdministrator.sid
-          tenantId: azureAdAdministrator.tenantId
+          tenantId: azureAdAdministrator.?tenantId ?? tenant().tenantId
           azureADOnlyAuthentication: entraOnly
         }
       : null

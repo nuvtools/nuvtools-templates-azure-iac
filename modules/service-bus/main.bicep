@@ -52,6 +52,12 @@ param queues array = []
 @description('List of topics to be created. Each object must contain: name (string), maxSizeInMegabytes (int, default 1024) and enablePartitioning (bool, default false).')
 param topics array = []
 
+@description('''Subscriptions on topics NOT declared in this module (already existing in the
+namespace). Array of objects: { topicName, name, requiresSession?, maxDeliveryCount?, lockDuration?,
+defaultMessageTimeToLive?, deadLetteringOnExpiration? }. A topic created here can instead carry a
+nested subscriptions array, so it and its subscribers stay declared together.''')
+param topicSubscriptions array = []
+
 @description('Enables sending diagnostics to Log Analytics.')
 param enableDiagnostics bool = false
 
@@ -123,6 +129,32 @@ resource serviceBusTopics 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = 
       maxSizeInMegabytes: topic.?maxSizeInMegabytes ?? 1024
       enablePartitioning: topic.?enablePartitioning ?? false
     }
+  }
+]
+
+// Subscriptions declared under a topic are tagged with their topic name and
+// merged with any standalone ones, so a single loop covers both.
+var nestedTopicSubscriptions = flatten(map(
+  topics,
+  topic => map(topic.?subscriptions ?? [], sub => union(sub, { topicName: topic.name }))
+))
+var allTopicSubscriptions = concat(nestedTopicSubscriptions, topicSubscriptions)
+
+// Topic subscriptions - created via loop over the merged configuration array
+#disable-next-line use-recent-api-versions
+resource serviceBusTopicSubscriptions 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' = [
+  for sub in allTopicSubscriptions: {
+    name: '${namespaceName}/${sub.topicName}/${sub.name}'
+    properties: {
+      requiresSession: sub.?requiresSession ?? false
+      deadLetteringOnMessageExpiration: sub.?deadLetteringOnExpiration ?? true
+      maxDeliveryCount: sub.?maxDeliveryCount ?? 10
+      lockDuration: sub.?lockDuration
+      defaultMessageTimeToLive: sub.?defaultMessageTimeToLive
+    }
+    dependsOn: [
+      serviceBusTopics
+    ]
   }
 ]
 
