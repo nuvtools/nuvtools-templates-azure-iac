@@ -49,8 +49,17 @@ param zoneRedundant bool = false
 @description('List of queues to be created. Each object accepts: name (string), maxSizeInMegabytes (int, default 1024), enablePartitioning (bool, default false), requiresSession (bool, default false), deadLetteringOnExpiration (bool, default true), maxDeliveryCount (int, default 10), lockDuration (ISO 8601 duration, e.g. PT4M), defaultMessageTimeToLive (ISO 8601 duration, e.g. P14D), requiresDuplicateDetection (bool) and duplicateDetectionHistoryTimeWindow (ISO 8601 duration, e.g. PT5M). Omitted optional values fall back to the Service Bus defaults. Note: requiresDuplicateDetection and requiresSession are immutable after creation.')
 param queues array = []
 
-@description('List of topics to be created. Each object must contain: name (string), maxSizeInMegabytes (int, default 1024) and enablePartitioning (bool, default false).')
+@description('''List of topics to be created. Each object must contain: name (string),
+maxSizeInMegabytes (int, default 1024) and enablePartitioning (bool, default false).
+It may also carry subscriptions (array), each object:
+{ name, requiresSession?, maxDeliveryCount?, lockDuration?, defaultMessageTimeToLive?,
+deadLetteringOnExpiration? } — keeping a topic and its subscribers declared together.''')
 param topics array = []
+
+@description('''Subscriptions on topics NOT declared in this module (already existing in the
+namespace). Same object shape as a nested subscription, plus topicName. Prefer nesting under
+topics when this module creates the topic, so ordering is handled for you.''')
+param topicSubscriptions array = []
 
 @description('Enables sending diagnostics to Log Analytics.')
 param enableDiagnostics bool = false
@@ -123,6 +132,32 @@ resource serviceBusTopics 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = 
       maxSizeInMegabytes: topic.?maxSizeInMegabytes ?? 1024
       enablePartitioning: topic.?enablePartitioning ?? false
     }
+  }
+]
+
+// Subscriptions declared under a topic are tagged with their topic name and
+// merged with any standalone ones, so a single loop covers both.
+var nestedTopicSubscriptions = flatten(map(
+  topics,
+  topic => map(topic.?subscriptions ?? [], sub => union(sub, { topicName: topic.name }))
+))
+var allTopicSubscriptions = concat(nestedTopicSubscriptions, topicSubscriptions)
+
+// Topic subscriptions - created via loop over the merged configuration array
+#disable-next-line use-recent-api-versions
+resource serviceBusTopicSubscriptions 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' = [
+  for sub in allTopicSubscriptions: {
+    name: '${namespaceName}/${sub.topicName}/${sub.name}'
+    properties: {
+      requiresSession: sub.?requiresSession ?? false
+      deadLetteringOnMessageExpiration: sub.?deadLetteringOnExpiration ?? true
+      maxDeliveryCount: sub.?maxDeliveryCount ?? 10
+      lockDuration: sub.?lockDuration
+      defaultMessageTimeToLive: sub.?defaultMessageTimeToLive
+    }
+    dependsOn: [
+      serviceBusTopics
+    ]
   }
 ]
 

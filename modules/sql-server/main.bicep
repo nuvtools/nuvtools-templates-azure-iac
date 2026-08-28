@@ -32,12 +32,13 @@ param tags object = {
   Environment: environment
 }
 
-@description('SQL Server administrator login.')
-param administratorLogin string
+@description('''SQL Server administrator login. Leave empty for an Entra-ID-only server, which has
+no SQL administrator at all — required when azureADOnlyAuthentication is true.''')
+param administratorLogin string = ''
 
-@description('SQL Server administrator password.')
+@description('SQL Server administrator password. Required only when administratorLogin is set.')
 @secure()
-param administratorPassword string
+param administratorPassword string = ''
 
 @description('Minimum TLS version allowed for connections.')
 param minimalTlsVersion string = '1.2'
@@ -49,8 +50,22 @@ param minimalTlsVersion string = '1.2'
 ])
 param publicNetworkAccess string = 'Disabled'
 
-@description('Azure Active Directory administrator configuration. Object with properties: login (string), sid (string) and tenantId (string).')
+@description('Azure Active Directory administrator configuration. Object with properties: login (string), sid (string) and tenantId (string, optional — defaults to the deployment tenant).')
 param azureAdAdministrator object = {}
+
+@description('''Principal type of the Entra-ID administrator: User, Group or Application. Group is
+the usual choice, so the admin survives people joining and leaving.''')
+@allowed([
+  'User'
+  'Group'
+  'Application'
+])
+param azureAdAdministratorPrincipalType string = 'Group'
+
+@description('''Disables SQL authentication entirely, leaving Entra ID as the only way in. Requires
+azureAdAdministrator to be set, and administratorLogin to be empty. Enforced by a child resource,
+not just the inline server property.''')
+param azureADOnlyAuthentication bool = false
 
 @description('Enables the SQL Server auditing policy.')
 param enableAuditing bool = true
@@ -93,18 +108,19 @@ resource sqlServer 'Microsoft.Sql/servers@2024-05-01-preview' = {
   location: location
   tags: tags
   properties: {
-    administratorLogin: administratorLogin
-    administratorLoginPassword: administratorPassword
+    administratorLogin: empty(administratorLogin) ? null : administratorLogin
+    administratorLoginPassword: empty(administratorLogin) ? null : administratorPassword
     version: '12.0'
     minimalTlsVersion: minimalTlsVersion
     publicNetworkAccess: publicNetworkAccess
     administrators: hasAzureAdAdmin
       ? {
           administratorType: 'ActiveDirectory'
+          principalType: azureAdAdministratorPrincipalType
           login: azureAdAdministrator.login
           sid: azureAdAdministrator.sid
-          tenantId: azureAdAdministrator.tenantId
-          azureADOnlyAuthentication: false
+          tenantId: azureAdAdministrator.?tenantId ?? tenant().tenantId
+          azureADOnlyAuthentication: azureADOnlyAuthentication
         }
       : null
   }
@@ -114,6 +130,16 @@ resource sqlServer 'Microsoft.Sql/servers@2024-05-01-preview' = {
 }
 
 // Firewall rule to allow access from Azure services (0.0.0.0 - 0.0.0.0)
+// The inline azureADOnlyAuthentication property is advisory; this child resource
+// is what the control plane actually enforces.
+resource azureAdOnly 'Microsoft.Sql/servers/azureADOnlyAuthentications@2024-05-01-preview' = if (azureADOnlyAuthentication && hasAzureAdAdmin) {
+  parent: sqlServer
+  name: 'Default'
+  properties: {
+    azureADOnlyAuthentication: true
+  }
+}
+
 resource firewallRuleAllowAzureServices 'Microsoft.Sql/servers/firewallRules@2024-05-01-preview' = {
   name: 'AllowAzureServices'
   parent: sqlServer
