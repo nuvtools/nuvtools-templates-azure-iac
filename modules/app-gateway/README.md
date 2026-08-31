@@ -22,11 +22,19 @@ Override: use the `name` parameter to define a fully custom name for the Applica
 Routing can be declared at two levels:
 
 - **High level** — the `sites` array expands into an HTTPS listener, backend pools, an optional URL path map and a routing rule per fronted host. A site without `pathRules` produces a `Basic` rule straight to its default pool; a site with them produces a `PathBasedRouting` rule.
-- **Low level** — `httpListeners`, `backendAddressPools`, `backendHttpSettings`, `requestRoutingRules` and `urlPathMaps` are passed through verbatim and take precedence over `sites`.
+- **Low level** — `httpListeners`, `backendAddressPools`, `backendHttpSettings`, `requestRoutingRules`, `urlPathMaps` and `probes` are passed through verbatim and take precedence over `sites`.
 
 With neither, a plain HTTP listener on port 80 is created.
 
 The backend settings generated from `sites` target HTTPS/443 with the host taken from the backend address. Path rules default to `stripPath: true`, which rewrites the backend path to root so a listener prefix such as `/api` is not forwarded downstream — set it to `false` to preserve the full path.
+
+## Health probes
+
+`sites` also generates a health probe per generated backend setting (`probe-default`, `probe-path`), because the implicit probe Application Gateway falls back on is not usable against a modern PaaS backend: it sends `Host: 127.0.0.1`, which Container Apps and App Service ingress do not recognise, so every backend answers **404** and the pool is reported *Unhealthy* even though it is serving traffic normally.
+
+The generated probes set `pickHostNameFromBackendHttpSettings`, which chains onto the `pickHostNameFromBackendAddress` of the settings, so each probe is sent with the Host header and SNI of the pool member it is checking. They request `healthProbePath` (default `/`) and accept `healthProbeMatchStatusCodes` (default `200-399`).
+
+`healthProbePath` applies to every generated backend, so it has to be a path all of them answer. Backends that need different health paths must be declared with the low-level `backendHttpSettings` + `probes` arrays instead — supplying `backendHttpSettings` drops the generated probes rather than leaving them unreferenced.
 
 ## Usage
 
@@ -116,12 +124,15 @@ module appGatewayHttps 'modules/app-gateway/main.bicep' = {
 | `certificateName` | `string` | `'tls-cert'` | Internal name of the SSL certificate inside the gateway. Referenced by the listeners generated from `sites`. |
 | `sites` | `array` | `[]` | Routed sites. Each object: `{ key, hostName, priority, defaultFqdn, usePrivateFrontend?, pathRules?: [{ name, paths, fqdn, stripPath? }] }`. |
 | `backendRequestTimeout` | `int` | `60` | Request timeout, in seconds, of the backend settings generated from `sites`. |
+| `healthProbePath` | `string` | `'/'` | Path requested by the health probes generated from `sites`. Applies to every generated backend. |
+| `healthProbeMatchStatusCodes` | `array` | `['200-399']` | Status codes the generated health probes accept as healthy. |
 | `sslCertificates` | `array` | `[]` | List of SSL certificates from Key Vault. Each object must contain `name` and `keyVaultSecretId`. Appended to the certificate generated from `certificateSecretName`. |
 | `httpListeners` | `array` | `[]` | List of HTTP listeners. Overrides the listeners generated from `sites`. If both are empty, a default listener on port 80 will be created. |
 | `backendAddressPools` | `array` | `[]` | List of backend address pools. Overrides the pools generated from `sites`. If both are empty, a default empty pool will be created. |
 | `backendHttpSettings` | `array` | `[]` | List of backend HTTP settings. Overrides the settings generated from `sites`. If both are empty, a default setting on port 80 will be created. |
 | `requestRoutingRules` | `array` | `[]` | List of request routing rules. Overrides the rules generated from `sites`. If both are empty, a default rule will be created. |
 | `urlPathMaps` | `array` | `[]` | List of URL path maps. Overrides the path maps generated from `sites`. |
+| `probes` | `array` | `[]` | List of health probes. Overrides the probes generated from `sites`. |
 
 ## Outputs
 
@@ -133,6 +144,13 @@ module appGatewayHttps 'modules/app-gateway/main.bicep' = {
 | `privateIpAddress` | `string` | Private frontend IP address of the Application Gateway, when configured. |
 | `identityId` | `string` | Resource ID of the managed identity attached to the gateway, created or reused. |
 | `identityPrincipalId` | `string` | Principal ID of the managed identity attached to the gateway, used for Key Vault access. |
+
+## Changes in 2.1.0
+
+- `sites` now also generates health probes (`probe-default`, `probe-path`) and attaches them to the generated backend settings. Without them the gateway falls back to its implicit probe, which sends `Host: 127.0.0.1` and is answered with a 404 by Container Apps and App Service ingress — see [Health probes](#health-probes).
+- New `healthProbePath`, `healthProbeMatchStatusCodes` and low-level `probes` parameters.
+
+Existing deployments are updated in place: the probes are added and the two generated backend settings start referencing them.
 
 ## Changes in 2.0.0
 

@@ -8,14 +8,15 @@
 //   * high level — the `sites` array expands into listeners, backend pools,
 //     URL path maps and routing rules (HTTPS, one entry per fronted host);
 //   * low level  — the httpListeners / backendAddressPools / backendHttpSettings
-//     / requestRoutingRules / urlPathMaps arrays are passed through verbatim.
+//     / requestRoutingRules / urlPathMaps / probes arrays are passed through
+//     verbatim.
 // Low level wins when both are supplied. With neither, a plain HTTP listener on
 // port 80 is created.
 // ---------------------------------------------------------------------------
 
 metadata name = 'Application Gateway'
 metadata description = 'Module for creating an Application Gateway with WAF, managed identity, Key Vault TLS certificates, host- and path-based routing and diagnostics following configurable naming conventions.'
-metadata version = '2.0.0'
+metadata version = '2.1.0'
 
 // =============================================================================
 // Parameters
@@ -131,6 +132,19 @@ param sites array = []
 @description('Request timeout, in seconds, of the backend settings generated from sites.')
 param backendRequestTimeout int = 60
 
+@description('''Path requested by the health probes generated from sites. Application
+Gateway's implicit probe (the one used when no probe is attached) sends `Host: 127.0.0.1`,
+which neither Container Apps nor App Service ingress recognises: every backend answers
+404 and the pool never comes up healthy. The generated probes take the host from the
+backend settings instead, so they ask for the backend member's own FQDN.''')
+param healthProbePath string = '/'
+
+@description('Status codes the generated health probes accept as healthy.')
+param healthProbeMatchStatusCodes array = ['200-399']
+
+@description('List of health probes. Overrides the probes generated from sites.')
+param probes array = []
+
 @description('List of SSL certificates from Key Vault. Each object must contain name and keyVaultSecretId. Appended to the certificate generated from certificateSecretName.')
 param sslCertificates array = []
 
@@ -181,6 +195,8 @@ var frontendPortHttpsName = 'port_443'
 var gatewayIpConfigName = 'appGwGatewayIpConfig'
 var backendSettingsName = 'bst-default'
 var backendSettingsPathName = 'bst-path'
+var probeName = 'probe-default'
+var probePathName = 'probe-path'
 
 // Identity: reuse the one supplied, otherwise create a dedicated one whenever a
 // vault is configured. The gateway is given an identity in both cases.
@@ -291,6 +307,9 @@ var generatedBackendHttpSettings = [
       cookieBasedAffinity: 'Disabled'
       pickHostNameFromBackendAddress: true
       requestTimeout: backendRequestTimeout
+      probe: {
+        id: resourceId('Microsoft.Network/applicationGateways/probes', appGatewayName, probeName)
+      }
     }
   }
   {
@@ -302,7 +321,37 @@ var generatedBackendHttpSettings = [
       pickHostNameFromBackendAddress: true
       path: '/'
       requestTimeout: backendRequestTimeout
+      probe: {
+        id: resourceId('Microsoft.Network/applicationGateways/probes', appGatewayName, probePathName)
+      }
     }
+  }
+]
+
+// pickHostNameFromBackendHttpSettings chains onto the pickHostNameFromBackendAddress
+// above, so each probe is sent with the Host and SNI of the pool member it is checking.
+// One probe per generated setting: a probe is bound to the settings that reference it,
+// and keeping them paired leaves either side tunable on its own.
+var generatedProbeProperties = {
+  protocol: 'Https'
+  path: healthProbePath
+  interval: 30
+  timeout: 20
+  unhealthyThreshold: 3
+  pickHostNameFromBackendHttpSettings: true
+  match: {
+    statusCodes: healthProbeMatchStatusCodes
+  }
+}
+
+var generatedProbes = [
+  {
+    name: probeName
+    properties: generatedProbeProperties
+  }
+  {
+    name: probePathName
+    properties: generatedProbeProperties
   }
 ]
 
@@ -492,6 +541,12 @@ var resolvedBackendHttpSettings = !empty(backendHttpSettings)
   ? backendHttpSettings
   : (useSites ? generatedBackendHttpSettings : defaultBackendHttpSettings)
 
+// The generated probes exist only to serve the generated settings, so an explicit
+// backendHttpSettings override drops them rather than leaving them unreferenced.
+var resolvedProbes = !empty(probes)
+  ? probes
+  : ((empty(backendHttpSettings) && useSites) ? generatedProbes : [])
+
 var resolvedHttpListeners = !empty(httpListeners)
   ? httpListeners
   : (useSites ? generatedHttpListeners : defaultHttpListeners)
@@ -657,6 +712,7 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2025-07-01' =
     sslCertificates: resolvedSslCertificates
     backendAddressPools: resolvedBackendAddressPools
     backendHttpSettingsCollection: resolvedBackendHttpSettings
+    probes: resolvedProbes
     httpListeners: resolvedHttpListeners
     urlPathMaps: resolvedUrlPathMaps
     requestRoutingRules: resolvedRequestRoutingRules
