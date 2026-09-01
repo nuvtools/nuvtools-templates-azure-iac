@@ -16,7 +16,7 @@
 
 metadata name = 'Application Gateway'
 metadata description = 'Module for creating an Application Gateway with WAF, managed identity, Key Vault TLS certificates, host- and path-based routing and diagnostics following configurable naming conventions.'
-metadata version = '2.1.0'
+metadata version = '2.2.0'
 
 // =============================================================================
 // Parameters
@@ -120,13 +120,17 @@ param grantKeyVaultAccess bool = true
 @description('Name of the Key Vault secret holding the TLS certificate. Referenced without a version so certificate rotation is picked up automatically.')
 param certificateSecretName string = ''
 
-@description('Internal name of the SSL certificate inside the Application Gateway. Referenced by the listeners generated from sites.')
+@description('Internal name of the SSL certificate inside the Application Gateway. Referenced by the listeners generated from sites, except those naming a certificate of their own.')
 param certificateName string = 'tls-cert'
 
 @description('''Routed sites. One entry per fronted host, expanded into an HTTPS
 listener, backend pools, an optional URL path map and a routing rule. Shape:
-{ key, hostName, priority, defaultFqdn, usePrivateFrontend?, pathRules?: [{ name, paths, fqdn, stripPath? }] }.
-A site without pathRules produces a Basic rule straight to its default pool.''')
+{ key, hostName, priority, defaultFqdn, usePrivateFrontend?, certificateName?, pathRules?: [{ name, paths, fqdn, stripPath? }] }.
+A site without pathRules produces a Basic rule straight to its default pool. A site
+without certificateName is served the certificate named by certificateName above; a host
+on a domain that certificate does not cover names one of sslCertificates instead, and
+without it the listener answers with the wrong certificate and the browser rejects the
+connection before routing is ever reached.''')
 param sites array = []
 
 @description('Request timeout, in seconds, of the backend settings generated from sites.')
@@ -373,7 +377,11 @@ var generatedHttpListeners = [
       hostName: site.hostName
       requireServerNameIndication: true
       sslCertificate: {
-        id: resourceId('Microsoft.Network/applicationGateways/sslCertificates', appGatewayName, certificateName)
+        id: resourceId(
+          'Microsoft.Network/applicationGateways/sslCertificates',
+          appGatewayName,
+          site.?certificateName ?? certificateName
+        )
       }
     }
   }
