@@ -111,6 +111,7 @@ module appGatewayHttps 'modules/app-gateway/main.bicep' = {
 | `maxCapacity` | `int` | `10` | Maximum capacity when auto scaling is enabled. |
 | `zones` | `array` | `[]` | Availability zones for the gateway and its public IP. Leave empty for a non-zonal deployment. |
 | `enableHttp2` | `bool` | `true` | Enables HTTP/2 on the Application Gateway frontend. |
+| `publicIpDomainNameLabel` | `string` | `''` | DNS name label on the gateway's public IP, giving it a stable `<label>.<region>.cloudapp.azure.com` FQDN. Set it whenever a public DNS record CNAMEs to the gateway: the label is a property of the public IP, so leaving this empty strips a label applied out of band on the next deploy and the CNAME chain resolves to NXDOMAIN. Must be unique within the region. |
 | `privateFrontendIpAddress` | `string` | `''` | Static private frontend IP address. Must fall inside the gateway subnet. Leave empty for a public-only gateway. |
 | `enableWafPolicy` | `bool` | `true` | Enables the WAF policy on the Application Gateway. Applied only when `skuName` is `WAF_v2`. |
 | `wafMode` | `string` | `'Prevention'` | WAF operating mode. Allowed values: `Detection`, `Prevention`. |

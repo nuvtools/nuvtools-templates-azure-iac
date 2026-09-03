@@ -16,7 +16,7 @@
 
 metadata name = 'Application Gateway'
 metadata description = 'Module for creating an Application Gateway with WAF, managed identity, Key Vault TLS certificates, host- and path-based routing and diagnostics following configurable naming conventions.'
-metadata version = '2.1.0'
+metadata version = '2.2.0'
 
 // =============================================================================
 // Parameters
@@ -76,6 +76,13 @@ param zones array = []
 
 @description('Enables HTTP/2 on the Application Gateway frontend.')
 param enableHttp2 bool = true
+
+@description('''DNS name label on the gateway's public IP, giving it a stable
+<label>.<region>.cloudapp.azure.com FQDN. Set it whenever a public DNS record
+CNAMEs to the gateway: the label is a property of the public IP, so leaving this
+empty strips a label applied out of band on the next deploy and the CNAME chain
+resolves to NXDOMAIN. Must be unique within the region.''')
+param publicIpDomainNameLabel string = ''
 
 @description('Static private frontend IP address. Must fall inside the gateway subnet. Leave empty for a public-only gateway.')
 param privateFrontendIpAddress string = ''
@@ -634,6 +641,11 @@ resource publicIp 'Microsoft.Network/publicIPAddresses@2025-07-01' = {
   properties: {
     publicIPAllocationMethod: 'Static'
     publicIPAddressVersion: 'IPv4'
+    dnsSettings: empty(publicIpDomainNameLabel)
+      ? null
+      : {
+          domainNameLabel: publicIpDomainNameLabel
+        }
   }
 }
 
