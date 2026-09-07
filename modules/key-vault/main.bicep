@@ -48,8 +48,15 @@ param enableSoftDelete bool = true
 @description('Soft delete retention period in days.')
 param softDeleteRetentionInDays int = 90
 
-@description('Enables purge protection. Prevents permanent deletion during the retention period. Irreversible: the API rejects an explicit false, so when false the property is omitted rather than sent.')
-param enablePurgeProtection bool = true
+@description('''Enables purge protection: the vault cannot be permanently deleted during the
+retention period, and `az keyvault purge` is refused outright.
+**Off by default, and think hard before turning it on.** It is IRREVERSIBLE — the API rejects an
+explicit false even on an existing vault, so when false the property is omitted rather than sent.
+Its practical cost is that deleting a vault reserves its NAME for the whole retention window
+(90 days by default), so a vault cannot be recreated under the same name in another region or
+subscription. Turn it on only where an accidental purge would be unrecoverable and that risk
+outweighs losing the name.''')
+param enablePurgeProtection bool = false
 
 @description('Default action for network rules (Allow or Deny).')
 @allowed([

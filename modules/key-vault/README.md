@@ -68,7 +68,7 @@ The Secrets User assignment name matches the one produced by `modules/app-gatewa
 | `enableRbacAuthorization` | `bool` | `true` | Enables RBAC-based authorization instead of access policies. |
 | `enableSoftDelete` | `bool` | `true` | Enables soft delete for protection against accidental deletion. |
 | `softDeleteRetentionInDays` | `int` | `90` | Soft delete retention period in days. |
-| `enablePurgeProtection` | `bool` | `true` | Enables purge protection. Prevents permanent deletion during the retention period. Sent only when `true` — see below. |
+| `enablePurgeProtection` | `bool` | `false` | Prevents permanent deletion during the retention period. **Irreversible** — the API rejects an explicit `false` even on an existing vault, so when `false` the property is omitted rather than sent. Its practical cost: deleting the vault reserves its **name** for the whole retention window, so it cannot be recreated under the same name in another region or subscription. |
 | `networkDefaultAction` | `string` | `'Deny'` | Default network rule action. Allowed values: `Allow`, `Deny`. |
 | `allowedSubnetIds` | `array` | `[]` | List of allowed subnet IDs for Key Vault access via service endpoints. |
 | `allowedIpRanges` | `array` | `[]` | List of allowed IP ranges for Key Vault access (CIDR format or single IP). |
