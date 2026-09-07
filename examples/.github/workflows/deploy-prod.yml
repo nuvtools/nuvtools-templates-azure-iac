@@ -4,6 +4,7 @@
 # =============================================================================
 
 name: Deploy Production
+run-name: Production · ${{ inputs.runDeploy && 'apply' || 'what-if only' }}
 
 on:
   workflow_dispatch:

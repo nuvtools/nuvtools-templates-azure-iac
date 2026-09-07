@@ -4,6 +4,7 @@
 # =============================================================================
 
 name: Deploy Staging
+run-name: Staging · ${{ inputs.runDeploy && 'apply' || 'what-if only' }}
 
 on:
   workflow_dispatch:
