@@ -70,6 +70,16 @@ param allowAzureServices bool = true
 @description('Additional firewall rules. Array of objects with name, startIpAddress and endIpAddress. Ignored while publicNetworkAccess is Disabled — Azure rejects the write rather than storing inert rules.')
 param firewallRules array = []
 
+@description('''Virtual network rules, admitting a subnet that carries the Microsoft.Sql service
+endpoint. Array of objects: { name, subnetId, ignoreMissingServiceEndpoint? }.
+A service endpoint keeps the server on its public address and recognizes the caller by SUBNET, so it
+serves callers inside the VNet and nothing else — a VPN client or an on-premises host is not in the
+subnet and cannot be admitted this way. Requires publicNetworkAccess Enabled (the portal shows this
+as "Selected networks"); the rules are ignored while it is Disabled, exactly like firewallRules.
+Set ignoreMissingServiceEndpoint true to create the rule before the subnet carries the endpoint —
+otherwise the subnet must already have Microsoft.Sql or Azure rejects the write.''')
+param virtualNetworkRules array = []
+
 @description('Enables the SQL Server auditing policy. With logAnalyticsWorkspaceId set, the audit trail is also routed to that workspace and becomes queryable with KQL; supply one, because an audit nobody can query is not an audit.')
 param enableAuditing bool = true
 
@@ -173,6 +183,19 @@ resource firewallRuleAllowAzureServices 'Microsoft.Sql/servers/firewallRules@202
     endIpAddress: '0.0.0.0'
   }
 }
+
+// Virtual network rules, on the same gate as the firewall rules above: they are a
+// public-endpoint feature, so a server with publicNetworkAccess Disabled rejects them.
+resource sqlVirtualNetworkRules 'Microsoft.Sql/servers/virtualNetworkRules@2025-01-01' = [
+  for rule in (publicAccessEnabled ? virtualNetworkRules : []): {
+    name: rule.name
+    parent: sqlServer
+    properties: {
+      virtualNetworkSubnetId: rule.subnetId
+      ignoreMissingVnetServiceEndpoint: rule.?ignoreMissingServiceEndpoint ?? false
+    }
+  }
+]
 
 // Additional firewall rules, on the same gate: a server reached over a private
 // endpoint has publicNetworkAccess Disabled and rejects every rule write.

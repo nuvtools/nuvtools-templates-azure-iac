@@ -45,6 +45,7 @@ module storageAccount 'modules/storage-account/main.bicep' = {
 | `kind` | `string` | `'StorageV2'` | Storage account kind. Allowed values: `StorageV2`, `BlobStorage`, `BlockBlobStorage`, `FileStorage`, `Storage`. |
 | `accessTier` | `string` | `'Hot'` | Storage account access tier. Allowed values: `Hot`, `Cool`. |
 | `allowBlobPublicAccess` | `bool` | `false` | Allows public access to blobs. |
+| `allowSharedKeyAccess` | `bool` | `true` | Allows authorization with the account access keys. `false` makes the account Entra-only: callers authorize with a token and need an RBAC role such as *Storage Blob Data Contributor*. This also disables account-key SAS — a caller handing out time-limited blob URLs must switch to a **user delegation SAS**, signed with an Entra token. |
 | `minimumTlsVersion` | `string` | `'TLS1_2'` | Minimum allowed TLS version. Allowed values: `TLS1_0`, `TLS1_1`, `TLS1_2`. |
 | `networkDefaultAction` | `string` | `'Deny'` | Default network rule action. Allowed values: `Allow`, `Deny`. |
 | `virtualNetworkSubnetIds` | `array` | `[]` | List of subnet IDs allowed for access via service endpoints. |

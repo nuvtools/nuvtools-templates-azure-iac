@@ -60,6 +60,15 @@ param accessTier string = 'Hot'
 @description('Allows public access to blobs.')
 param allowBlobPublicAccess bool = false
 
+@description('''Allows authorization with the account access keys (shared key). Set false to make the
+account Entra-only (passwordless): every caller then authorizes with a token and needs an RBAC role
+such as Storage Blob Data Contributor.
+Note this also disables account-key SAS. A caller that hands out time-limited blob URLs must switch to
+a USER DELEGATION SAS, which is signed with an Entra token instead of the account key — the
+generateUserDelegationKey action it needs is already part of Storage Blob Data Contributor.
+Defaults to true, which is the Azure default and preserves existing behaviour.''')
+param allowSharedKeyAccess bool = true
+
 @description('Minimum allowed TLS version.')
 @allowed([
   'TLS1_0'
@@ -118,6 +127,7 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2025-01-01' = {
   properties: {
     accessTier: accessTier
     allowBlobPublicAccess: allowBlobPublicAccess
+    allowSharedKeyAccess: allowSharedKeyAccess
     minimumTlsVersion: minimumTlsVersion
     supportsHttpsTrafficOnly: true
     networkAcls: {
