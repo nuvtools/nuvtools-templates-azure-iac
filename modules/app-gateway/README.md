@@ -28,6 +28,12 @@ With neither, a plain HTTP listener on port 80 is created.
 
 The backend settings generated from `sites` target HTTPS/443 with the host taken from the backend address. Path rules default to `stripPath: true`, which rewrites the backend path to root so a listener prefix such as `/api` is not forwarded downstream — set it to `false` to preserve the full path.
 
+## TLS certificates
+
+A gateway can carry more than one certificate. `certificateSecretName` (with `keyVaultId`) produces the default one, named by `certificateName`; `sslCertificates` adds the rest, each `{ name, keyVaultSecretId }` pointing at a versionless Key Vault secret URI so rotation is picked up without a redeploy.
+
+A site generated from `sites` is served the default certificate unless it names another one in `certificateName`. A gateway fronting a second domain needs that: the certificate covering the first domain is presented for every host otherwise, and a browser rejects the connection over the name mismatch before routing is ever reached.
+
 ## Health probes
 
 `sites` also generates a health probe per generated backend setting (`probe-default`, `probe-path`), because the implicit probe Application Gateway falls back on is not usable against a modern PaaS backend: it sends `Host: 127.0.0.1`, which Container Apps and App Service ingress do not recognise, so every backend answers **404** and the pool is reported *Unhealthy* even though it is serving traffic normally.
@@ -122,8 +128,8 @@ module appGatewayHttps 'modules/app-gateway/main.bicep' = {
 | `identityId` | `string` | `''` | Resource ID of an existing user-assigned managed identity to attach. When empty, the module creates its own. Reuse a shared platform identity to grant vault access once instead of per gateway. |
 | `grantKeyVaultAccess` | `bool` | `true` | Grants the gateway identity Key Vault Secrets User on the vault. Disable when the deploying identity cannot write role assignments, and grant the access separately. |
 | `certificateSecretName` | `string` | `''` | Name of the Key Vault secret holding the TLS certificate. Referenced without a version so rotation is picked up automatically. |
-| `certificateName` | `string` | `'tls-cert'` | Internal name of the SSL certificate inside the gateway. Referenced by the listeners generated from `sites`. |
-| `sites` | `array` | `[]` | Routed sites. Each object: `{ key, hostName, priority, defaultFqdn, usePrivateFrontend?, pathRules?: [{ name, paths, fqdn, stripPath? }] }`. |
+| `certificateName` | `string` | `'tls-cert'` | Internal name of the SSL certificate inside the gateway. Referenced by the listeners generated from `sites`, except those naming a certificate of their own. |
+| `sites` | `array` | `[]` | Routed sites. Each object: `{ key, hostName, priority, defaultFqdn, usePrivateFrontend?, certificateName?, pathRules?: [{ name, paths, fqdn, stripPath? }] }`. |
 | `backendRequestTimeout` | `int` | `60` | Request timeout, in seconds, of the backend settings generated from `sites`. |
 | `healthProbePath` | `string` | `'/'` | Path requested by the health probes generated from `sites`. Applies to every generated backend. |
 | `healthProbeMatchStatusCodes` | `array` | `['200-399']` | Status codes the generated health probes accept as healthy. |
@@ -145,6 +151,10 @@ module appGatewayHttps 'modules/app-gateway/main.bicep' = {
 | `privateIpAddress` | `string` | Private frontend IP address of the Application Gateway, when configured. |
 | `identityId` | `string` | Resource ID of the managed identity attached to the gateway, created or reused. |
 | `identityPrincipalId` | `string` | Principal ID of the managed identity attached to the gateway, used for Key Vault access. |
+
+## Changes in 2.2.0
+
+- A `sites` entry may now carry its own `certificateName`, choosing any certificate on the gateway rather than always the default — see [TLS certificates](#tls-certificates). Sites that omit it are served exactly what they were before.
 
 ## Changes in 2.1.0
 
