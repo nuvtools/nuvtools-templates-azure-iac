@@ -83,6 +83,18 @@ param secretsUserPrincipalIds array = []
 @description('List of principal IDs that will receive the Key Vault Certificate User role on the Key Vault. Requires enableRbacAuthorization.')
 param certificateUserPrincipalIds array = []
 
+@description('''Keys to create in the vault, as objects:
+  { name: string, kty: 'EC' | 'RSA' | 'EC-HSM' | 'RSA-HSM', curveName: string?, keySize: int?, keyOps: array? }
+
+Declared here rather than created by hand so the key an application signs with is part of the same
+deployment as the identity allowed to use it — the two are useless apart, and a key created out of
+band is one nothing records the existence of.
+
+ARM creates a key it does not find and leaves an existing one alone; it never rotates one. Rotation
+is therefore a vault operation and stays outside the template, which is the right place for it: a
+redeploy must not silently invalidate every signature an application has already issued.''')
+param keys array = []
+
 // =============================================================================
 // Variables
 // =============================================================================
@@ -166,6 +178,25 @@ resource certificateUserRoleAssignments 'Microsoft.Authorization/roleAssignments
   }
 ]
 
+// Keys the vault is created holding. The private half never leaves it: an application is granted a
+// crypto role and asks the vault to sign, rather than being handed key material it would then have
+// to protect.
+resource vaultKeys 'Microsoft.KeyVault/vaults/keys@2024-11-01' = [
+  for key in keys: {
+    parent: keyVault
+    name: key.name
+    properties: {
+      kty: key.kty
+      curveName: key.?curveName
+      keySize: key.?keySize
+      keyOps: key.?keyOps
+      attributes: {
+        enabled: true
+      }
+    }
+  }
+]
+
 // Conditional diagnostic settings
 #disable-next-line use-recent-api-versions
 resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (enableDiagnostics && !empty(logAnalyticsWorkspaceId)) {
@@ -204,3 +235,6 @@ output name string = keyVault.name
 
 @description('Key Vault URI for accessing secrets, keys and certificates.')
 output vaultUri string = keyVault.properties.vaultUri
+
+@description('Names of the keys created by this module, in the order they were declared.')
+output keyNames array = [for (key, index) in keys: vaultKeys[index].name]

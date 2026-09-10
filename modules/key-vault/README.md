@@ -55,6 +55,30 @@ Writing role assignments requires `Microsoft.Authorization/roleAssignments/write
 
 The Secrets User assignment name matches the one produced by `modules/app-gateway/keyvault-access.bicep`, so granting the same principal from both modules is idempotent.
 
+## Keys
+
+`keys` declares key material the vault is created holding, so the key an application signs with is
+part of the same deployment as the identity allowed to use it — the two are useless apart, and a key
+created by hand is one nothing records the existence of.
+
+```bicep
+keys: [
+  {
+    name: 'gateway-backend-signing'
+    kty: 'EC'
+    curveName: 'P-256'
+    keyOps: ['sign', 'verify']
+  }
+]
+```
+
+The private half never leaves the vault: an application is granted **Key Vault Crypto User** and asks
+the vault to sign, rather than being handed material it would then have to protect.
+
+ARM creates a key it does not find and leaves an existing one alone; it never rotates one. Rotation
+is therefore a vault operation and deliberately stays outside the template — a redeploy must not
+silently invalidate every signature an application has already issued.
+
 ## Parameters
 
 | Parameter | Type | Default | Description |
@@ -76,6 +100,7 @@ The Secrets User assignment name matches the one produced by `modules/app-gatewa
 | `logAnalyticsWorkspaceId` | `string` | `''` | Log Analytics workspace ID for diagnostics. Required when `enableDiagnostics` is `true`. |
 | `secretsUserPrincipalIds` | `array` | `[]` | Principal IDs that receive the Key Vault Secrets User role on the vault. |
 | `certificateUserPrincipalIds` | `array` | `[]` | Principal IDs that receive the Key Vault Certificate User role on the vault. |
+| `keys` | `array` | `[]` | Keys created in the vault: `{ name, kty, curveName?, keySize?, keyOps? }`. See **Keys** below. |
 
 ## Outputs
 
@@ -84,3 +109,4 @@ The Secrets User assignment name matches the one produced by `modules/app-gatewa
 | `id` | `string` | ID of the created Key Vault. |
 | `name` | `string` | Name of the created Key Vault. |
 | `vaultUri` | `string` | Key Vault URI for accessing secrets, keys, and certificates. |
+| `keyNames` | `array` | Names of the keys created by this module, in declaration order. |
