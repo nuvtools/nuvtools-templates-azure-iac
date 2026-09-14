@@ -16,7 +16,7 @@
 
 metadata name = 'Application Gateway'
 metadata description = 'Module for creating an Application Gateway with WAF, managed identity, Key Vault TLS certificates, host- and path-based routing and diagnostics following configurable naming conventions.'
-metadata version = '2.2.0'
+metadata version = '2.3.0'
 
 // =============================================================================
 // Parameters
@@ -109,6 +109,15 @@ param wafRuleSets array = [
   }
 ]
 
+@description('''Additional WAF policies, each attachable to a site's listener or to a single path
+rule so that part of the gateway runs under a different mode or carries custom rules. Shape:
+{ name, mode, customRules? }. Created as {workloadName}-agw-waf-{name}-{environment} with the same
+managed rule sets and body limits as the gateway-wide policy. A site or path rule names one through
+its `wafPolicy`; anything that names none stays under the gateway-wide policy. Azure resolves the
+most specific association: path rule, then listener, then gateway. Ignored unless the gateway-wide
+policy is enabled, since a WAF_v2 gateway cannot attach a policy per listener without one.''')
+param wafPolicies array = []
+
 @description('Enables sending diagnostics to Log Analytics.')
 param enableDiagnostics bool = false
 
@@ -132,7 +141,8 @@ param certificateName string = 'tls-cert'
 
 @description('''Routed sites. One entry per fronted host, expanded into an HTTPS
 listener, backend pools, an optional URL path map and a routing rule. Shape:
-{ key, hostName, priority, defaultFqdn, usePrivateFrontend?, certificateName?, pathRules?: [{ name, paths, fqdn, stripPath? }] }.
+{ key, hostName, priority, defaultFqdn, usePrivateFrontend?, certificateName?, wafPolicy?, pathRules?: [{ name, paths, fqdn, stripPath?, wafPolicy? }] }.
+`wafPolicy` names an entry of wafPolicies; see that parameter for precedence.
 A site without pathRules produces a Basic rule straight to its default pool. A site
 without certificateName is served the certificate named by certificateName above; a host
 on a domain that certificate does not cover names one of sslCertificates instead, and
@@ -185,6 +195,14 @@ var appGatewayName = empty(name) ? autoName : name
 var publicIpName = '${workloadName}-agw-pip-${environment}'
 var identityName = '${workloadName}-agw-id-${environment}'
 var wafPolicyName = '${workloadName}-agw-waf-${environment}'
+
+// A named policy is only ever created alongside the gateway-wide one; see wafPolicies.
+var wafEnabled = enableWafPolicy && skuName == 'WAF_v2'
+
+// The association a site or path rule carries is written inline where it is used, not as a
+// user-defined function: a `func` switches the whole compiled template to languageVersion 2.0, which
+// would change the deployed shape for every consumer of this module to add an optional property.
+// Null — no `wafPolicy` — leaves the listener or rule under the gateway-wide policy, as before 2.3.0.
 
 // The vault may live outside the gateway's own resource group / subscription,
 // so subscription, resource group and name are taken apart from its resource ID:
@@ -390,6 +408,14 @@ var generatedHttpListeners = [
           site.?certificateName ?? certificateName
         )
       }
+      firewallPolicy: wafEnabled && !empty(site.?wafPolicy ?? '')
+        ? {
+            id: resourceId(
+              'Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies',
+              '${workloadName}-agw-waf-${site.wafPolicy}-${environment}'
+            )
+          }
+        : null
     }
   }
 ]
@@ -430,6 +456,14 @@ var generatedUrlPathMaps = [
               (rule.?stripPath ?? true) ? backendSettingsPathName : backendSettingsName
             )
           }
+          firewallPolicy: wafEnabled && !empty(rule.?wafPolicy ?? '')
+            ? {
+                id: resourceId(
+                  'Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies',
+                  '${workloadName}-agw-waf-${rule.wafPolicy}-${environment}'
+                )
+              }
+            : null
         }
       })
     }
@@ -677,6 +711,33 @@ module keyVaultAccess 'keyvault-access.bicep' = if (identityEnabled && !empty(ke
   }
 }
 
+// Named WAF policies, attached per listener or per path rule through `wafPolicy`. Same managed rules
+// and body limits as the gateway-wide policy below, so the only thing that differs between two parts
+// of the gateway is what the entry says: the mode and any custom rules.
+resource namedWafPolicies 'Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies@2025-07-01' = [
+  for policy in wafPolicies: if (wafEnabled) {
+    name: '${workloadName}-agw-waf-${policy.name}-${environment}'
+    location: location
+    tags: tags
+    properties: {
+      policySettings: {
+        requestBodyCheck: true
+        requestBodyEnforcement: true
+        requestBodyInspectLimitInKB: 128
+        maxRequestBodySizeInKb: 128
+        fileUploadEnforcement: true
+        fileUploadLimitInMb: 100
+        state: 'Enabled'
+        mode: policy.mode
+      }
+      managedRules: {
+        managedRuleSets: wafRuleSets
+      }
+      customRules: policy.?customRules ?? []
+    }
+  }
+]
+
 // Conditional WAF policy
 resource wafPolicy 'Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies@2025-07-01' = if (enableWafPolicy && skuName == 'WAF_v2') {
   name: wafPolicyName
@@ -742,7 +803,14 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2025-07-01' =
         }
       : null
   }
-  dependsOn: identityEnabled && !empty(keyVaultId) && grantKeyVaultAccess ? [keyVaultAccess] : []
+  // The named policies are referenced by resourceId inside the generated listeners and path maps,
+  // which carries no implicit dependency, so it is stated here. A policy that has to exist before the
+  // gateway PUT that attaches it fails the whole deployment otherwise. Depending on a resource whose
+  // condition is false is a no-op, which is what lets both entries stand unconditionally.
+  dependsOn: [
+    keyVaultAccess
+    namedWafPolicies
+  ]
 }
 
 // Conditional diagnostic settings

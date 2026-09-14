@@ -34,6 +34,50 @@ A gateway can carry more than one certificate. `certificateSecretName` (with `ke
 
 A site generated from `sites` is served the default certificate unless it names another one in `certificateName`. A gateway fronting a second domain needs that: the certificate covering the first domain is presented for every host otherwise, and a browser rejects the connection over the name mismatch before routing is ever reached.
 
+## WAF policies per listener and per path
+
+The gateway-wide policy (`wafMode`, `wafRuleSets`) covers everything by default. `wafPolicies` adds named policies — `{ name, mode, customRules? }`, created as `{workloadName}-agw-waf-{name}-{environment}` with the same managed rule sets and body limits — and a `sites` entry or one of its `pathRules` attaches one through `wafPolicy`. Azure applies the most specific association: a path rule's policy, then its listener's, then the gateway's.
+
+This is what lets one gateway move part of its traffic to `Prevention` while the rest stays in `Detection` until its logs have been reviewed, and what lets a host carry a rate-limit custom rule another host must not have. Typical shape — a web root enforced, its API path still observed:
+
+```bicep
+wafPolicies: [
+  {
+    name: 'web'
+    mode: 'Prevention'
+    customRules: [
+      {
+        name: 'RateLimitPerClient'
+        priority: 10
+        ruleType: 'RateLimitRule'
+        rateLimitDuration: 'OneMin'
+        rateLimitThreshold: 300
+        groupByUserSession: [ { groupByVariables: [ { variableName: 'ClientAddr' } ] } ]
+        matchConditions: [
+          { matchVariables: [ { variableName: 'RequestUri' } ], operator: 'Any', negationConditon: false, matchValues: [] }
+        ]
+        action: 'Block'
+      }
+    ]
+  }
+  { name: 'api', mode: 'Detection' }
+]
+sites: [
+  {
+    key: 'prod'
+    hostName: 'app.mycompany.com'
+    priority: 1
+    defaultFqdn: 'web-prod.example.brazilsouth.azurecontainerapps.io'
+    wafPolicy: 'web'
+    pathRules: [
+      { name: 'api', paths: ['/api/*'], fqdn: 'api-prod.example.brazilsouth.azurecontainerapps.io', wafPolicy: 'api' }
+    ]
+  }
+]
+```
+
+Named policies are created only when the gateway-wide policy is (`enableWafPolicy` on a `WAF_v2` SKU). A site or path rule without `wafPolicy` is deployed exactly as before.
+
 ## Health probes
 
 `sites` also generates a health probe per generated backend setting (`probe-default`, `probe-path`), because the implicit probe Application Gateway falls back on is not usable against a modern PaaS backend: it sends `Host: 127.0.0.1`, which Container Apps and App Service ingress do not recognise, so every backend answers **404** and the pool is reported *Unhealthy* even though it is serving traffic normally.
@@ -122,6 +166,7 @@ module appGatewayHttps 'modules/app-gateway/main.bicep' = {
 | `enableWafPolicy` | `bool` | `true` | Enables the WAF policy on the Application Gateway. Applied only when `skuName` is `WAF_v2`. |
 | `wafMode` | `string` | `'Prevention'` | WAF operating mode. Allowed values: `Detection`, `Prevention`. |
 | `wafRuleSets` | `array` | OWASP `3.2` + `Microsoft_BotManagerRuleSet` `0.1` | Managed rule sets applied by the WAF policy. Each object must contain `ruleSetType` and `ruleSetVersion`. |
+| `wafPolicies` | `array` | `[]` | Named WAF policies a site or path rule attaches through `wafPolicy`. Each object: `{ name, mode, customRules? }`. See [WAF policies per listener and per path](#waf-policies-per-listener-and-per-path). |
 | `enableDiagnostics` | `bool` | `false` | Enables sending diagnostics to Log Analytics. |
 | `logAnalyticsWorkspaceId` | `string` | `''` | Log Analytics workspace ID for diagnostics. Required when `enableDiagnostics` is `true`. |
 | `keyVaultId` | `string` | `''` | Resource ID of an existing Key Vault holding the TLS certificate. When provided, the gateway gets an identity granted Key Vault Secrets User on the vault. The vault may live in any resource group or subscription. |
@@ -129,7 +174,7 @@ module appGatewayHttps 'modules/app-gateway/main.bicep' = {
 | `grantKeyVaultAccess` | `bool` | `true` | Grants the gateway identity Key Vault Secrets User on the vault. Disable when the deploying identity cannot write role assignments, and grant the access separately. |
 | `certificateSecretName` | `string` | `''` | Name of the Key Vault secret holding the TLS certificate. Referenced without a version so rotation is picked up automatically. |
 | `certificateName` | `string` | `'tls-cert'` | Internal name of the SSL certificate inside the gateway. Referenced by the listeners generated from `sites`, except those naming a certificate of their own. |
-| `sites` | `array` | `[]` | Routed sites. Each object: `{ key, hostName, priority, defaultFqdn, usePrivateFrontend?, certificateName?, pathRules?: [{ name, paths, fqdn, stripPath? }] }`. |
+| `sites` | `array` | `[]` | Routed sites. Each object: `{ key, hostName, priority, defaultFqdn, usePrivateFrontend?, certificateName?, wafPolicy?, pathRules?: [{ name, paths, fqdn, stripPath?, wafPolicy? }] }`. |
 | `backendRequestTimeout` | `int` | `60` | Request timeout, in seconds, of the backend settings generated from `sites`. |
 | `healthProbePath` | `string` | `'/'` | Path requested by the health probes generated from `sites`. Applies to every generated backend. |
 | `healthProbeMatchStatusCodes` | `array` | `['200-399']` | Status codes the generated health probes accept as healthy. |
@@ -151,6 +196,11 @@ module appGatewayHttps 'modules/app-gateway/main.bicep' = {
 | `privateIpAddress` | `string` | Private frontend IP address of the Application Gateway, when configured. |
 | `identityId` | `string` | Resource ID of the managed identity attached to the gateway, created or reused. |
 | `identityPrincipalId` | `string` | Principal ID of the managed identity attached to the gateway, used for Key Vault access. |
+
+## Changes in 2.3.0
+
+- New `wafPolicies`, and an optional `wafPolicy` on a `sites` entry and on each of its `pathRules`, so a listener or a single path can run under its own WAF mode and custom rules — see [WAF policies per listener and per path](#waf-policies-per-listener-and-per-path).
+- The gateway now declares an explicit dependency on the named policies it attaches. Deployments that declare none are unchanged: the generated listeners and path rules carry no policy of their own and stay under the gateway-wide one.
 
 ## Changes in 2.2.0
 
