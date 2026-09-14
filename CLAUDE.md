@@ -45,7 +45,7 @@ Deploys at **subscription scope** and composes all 27 modules across 8 dependenc
 | 1 | `enableNetworking` | VNet, Subnets, NSG, NAT Gateway, Private DNS |
 | 2 | `enableMonitoring` | Log Analytics, App Insights, Storage Account |
 | 3 | `enableSecurity` | Key Vault, Certificates |
-| 4 | `enableData` | SQL Server, SQL Database, Redis Cache, PostgreSQL Flexible Server, PostgreSQL Database |
+| 4 | `enableData` | SQL Server, SQL Database, Azure Managed Redis, PostgreSQL Flexible Server, PostgreSQL Database |
 | 5 | `enableCompute` | ACR, AKS, Node Pool, App Gateway, Bastion, VM |
 | 6 | `enableMessaging` | API Management, Event Hub, Service Bus, SignalR |
 | 7 | `enableGovernance` | Role Assignments, Policies |

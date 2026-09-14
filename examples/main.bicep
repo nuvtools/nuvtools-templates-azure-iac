@@ -55,7 +55,7 @@ param enableMonitoring bool = true
 @description('Enables security resources (Key Vault, certificates).')
 param enableSecurity bool = true
 
-@description('Enables data resources (SQL Server, SQL Database, Redis Cache, PostgreSQL).')
+@description('Enables data resources (SQL Server, SQL Database, Azure Managed Redis, PostgreSQL).')
 param enableData bool = false
 
 @description('Enables compute resources (ACR, AKS, App Gateway, Bastion, Windows VM).')
@@ -129,9 +129,12 @@ param sqlAdminPassword string = ''
 @description('SQL Database SKU name.')
 param sqlDatabaseSkuName string = 'GP_S_Gen5_1'
 
-@description('Redis Cache SKU.')
-@allowed(['Basic', 'Standard', 'Premium'])
-param redisSkuName string = 'Standard'
+@description('Azure Managed Redis SKU. Balanced_B0 is the smallest.')
+param redisSkuName string = 'Balanced_B0'
+
+@description('Azure Managed Redis high availability. Disabled halves the cost and removes the SLA.')
+@allowed(['Enabled', 'Disabled'])
+param redisHighAvailability string = 'Enabled'
 
 @description('Enables Azure Database for PostgreSQL Flexible Server (and its database).')
 param enablePostgresql bool = false
@@ -438,8 +441,10 @@ module sqlDatabase '../modules/sql-database/main.bicep' = if (enableData) {
   }
 }
 
-module redisCache '../modules/redis-cache/main.bicep' = if (enableData) {
-  name: 'deploy-redis-cache'
+// Azure Managed Redis rather than the redis-cache module: Azure Cache for Redis can no longer be
+// created from October 2026, so a reference deployment built on it would fail on its first run.
+module managedRedis '../modules/managed-redis/main.bicep' = if (enableData) {
+  name: 'deploy-managed-redis'
   scope: resourceGroup(resourceGroupName)
   params: {
     workloadName: workloadName
@@ -447,6 +452,7 @@ module redisCache '../modules/redis-cache/main.bicep' = if (enableData) {
     location: location
     tags: tags
     skuName: redisSkuName
+    highAvailability: redisHighAvailability
     enableDiagnostics: enableMonitoring
     logAnalyticsWorkspaceId: enableMonitoring ? logAnalytics!.outputs.id : ''
   }

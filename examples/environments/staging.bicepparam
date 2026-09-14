@@ -51,7 +51,8 @@ param keyVaultSkuName = 'standard'
 // Data
 param sqlAdminLogin = 'sqladmin'
 param sqlDatabaseSkuName = 'GP_S_Gen5_1'
-param redisSkuName = 'Standard'
+param redisSkuName = 'Balanced_B0'
+param redisHighAvailability = 'Disabled'
 param enablePostgresql = true
 param postgresqlAdminLogin = 'pgadmin'
 param postgresqlSkuName = 'Standard_B1ms'

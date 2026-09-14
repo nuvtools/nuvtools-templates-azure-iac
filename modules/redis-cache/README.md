@@ -1,5 +1,7 @@
 # Redis Cache
 
+> **Deprecated — use [`managed-redis`](../managed-redis/README.md) for anything new.** This module creates Azure Cache for Redis (Basic, Standard, Premium), which new customers can no longer create since April 1, 2026 and nobody can create from October 1, 2026; existing instances retire on September 30, 2028. It stays here for consumers that already run one. See Microsoft's [retirement FAQ](https://learn.microsoft.com/en-us/azure/azure-cache-for-redis/retirement-faq).
+
 Bicep Module for provisioning an Azure Cache for Redis instance with SKU configuration, TLS, VNet injection (available on the Premium SKU), managed identity (System Assigned), firewall rules, and conditional diagnostics, following a configurable naming convention (`{workloadName}-redis-{environment}`). The `name` parameter allows you to completely override the automatic name.
 
 ## Usage

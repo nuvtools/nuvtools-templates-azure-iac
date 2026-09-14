@@ -57,7 +57,8 @@ param keyVaultSkuName = 'premium'
 // Data
 param sqlAdminLogin = 'sqladmin'
 param sqlDatabaseSkuName = 'GP_Gen5_2'
-param redisSkuName = 'Premium'
+param redisSkuName = 'Balanced_B1'
+param redisHighAvailability = 'Enabled'
 param enablePostgresql = true
 param postgresqlAdminLogin = 'pgadmin'
 param postgresqlVersion = '16'

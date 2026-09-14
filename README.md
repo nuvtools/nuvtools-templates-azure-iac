@@ -22,6 +22,7 @@ nuvtools-templates-azure-iac/
 │   ├── kubernetes-cluster/           # Azure Kubernetes Service
 │   ├── kubernetes-nodepool/          # Additional AKS Node Pool
 │   ├── log-analytics/                # Log Analytics Workspace
+│   ├── managed-redis/                # Azure Managed Redis (successor to redis-cache)
 │   ├── nat-gateway/                  # NAT Gateway + PIP Prefix
 │   ├── nsg/                          # Network Security Group
 │   ├── policy/                       # Azure Policy
@@ -31,7 +32,7 @@ nuvtools-templates-azure-iac/
 │   ├── private-dns-zone/             # Private DNS + VNet links
 │   ├── private-dns-zone-link/        # VNet link into a zone owned elsewhere
 │   ├── private-endpoint/             # Generic Private Endpoint
-│   ├── redis-cache/                  # Redis Cache
+│   ├── redis-cache/                  # Redis Cache (deprecated: creation blocked from Oct 2026)
 │   ├── resource-group/               # Resource Group
 │   ├── role-assignment/              # RBAC Assignment
 │   ├── service-bus/                  # Service Bus + queues/topics
@@ -113,7 +114,8 @@ All resources follow the pattern: **`{workloadName}-{abbreviation}-{environment}
 | API Management | `apim` | `{workloadName}-apim-{env}` | `myapp-apim-dev` |
 | Bastion | `bas` | `{workloadName}-bas-{env}` | `myapp-bas-dev` |
 | Event Hub | `evh` | `{workloadName}-evh-{env}` | `myapp-evh-dev` |
-| Redis Cache | `redis` | `{workloadName}-redis-{env}` | `myapp-redis-dev` |
+| Azure Managed Redis | `amr` | `{workloadName}-amr-{env}` | `myapp-amr-dev` |
+| Redis Cache (deprecated) | `redis` | `{workloadName}-redis-{env}` | `myapp-redis-dev` |
 | Service Bus | `sbns` | `{workloadName}-sbns-{env}` | `myapp-sbns-dev` |
 | SignalR | `sigr` | `{workloadName}-sigr-{env}` | `myapp-sigr-dev` |
 | Virtual Machine | `vm` | `{workloadName}-vm-{env}` | `myapp-vm-dev` |
@@ -134,7 +136,7 @@ The orchestrator organizes the modules into 8 layers:
 | 1 | VNet, Subnets, NSG, NAT Gateway, Private DNS | `enableNetworking` |
 | 2 | Log Analytics, App Insights, Storage Account | `enableMonitoring` |
 | 3 | Key Vault, Certificates | `enableSecurity` |
-| 4 | SQL Server, SQL Database, Redis Cache, PostgreSQL | `enableData` |
+| 4 | SQL Server, SQL Database, Azure Managed Redis, PostgreSQL | `enableData` |
 | 5 | ACR, AKS, Node Pool, App Gateway, Bastion, VM | `enableCompute` |
 | 6 | API Management, Event Hub, Service Bus, SignalR | `enableMessaging` |
 | 7 | Role Assignments, Policies | `enableGovernance` |
