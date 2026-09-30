@@ -84,6 +84,7 @@ module vmWindows2 'modules/virtual-machine-windows/main.bicep' = {
 | `enableEntraLogin` | `bool` | `false` | Installs the `AADLoginForWindows` extension so Microsoft Entra ID accounts sign in over RDP. Who may sign in is granted separately with the *Virtual Machine Administrator Login* or *Virtual Machine User Login* role. The VM needs outbound access to Entra ID — on a subnet without default outbound access, a NAT Gateway. |
 | `autoShutdownTime` | `string` | `''` | Daily auto-shutdown time, 24-hour `HHmm` (e.g. `2300`). Empty disables it. Requires the `Microsoft.DevTestLab` resource provider registered in the subscription. |
 | `autoShutdownTimeZone` | `string` | `'E. South America Standard Time'` | Windows time zone ID in which `autoShutdownTime` is read. |
+| `primaryDnsSuffix` | `string` | `''` | Primary DNS suffix (e.g. `contoso.internal`), set by a run command before the Entra ID extension, without a reboot. An Azure VM has none, so with `enableEntraLogin` the device registers only its bare computer name and an RDP to `<computerName>.<suffix>` is refused (`AADSTS293004`). Set it to the private DNS zone the VM autoregisters in and the device registers the FQDN too. |
 
 ## Outputs
 

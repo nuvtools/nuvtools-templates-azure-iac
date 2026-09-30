@@ -7,7 +7,7 @@
 
 metadata name = 'Virtual Machine Windows'
 metadata description = 'Module for creating a Windows virtual machine with network interface and boot diagnostics following configurable naming conventions.'
-metadata version = '1.2.0'
+metadata version = '1.3.0'
 
 // =============================================================================
 // Parameters
@@ -95,6 +95,13 @@ param autoShutdownTime string = ''
 
 @description('Windows time zone ID in which autoShutdownTime is read.')
 param autoShutdownTimeZone string = 'E. South America Standard Time'
+
+@description('''Primary DNS suffix of the VM (e.g. contoso.internal), set before anything else runs on
+it. An Azure VM has none — the VNet suffix is only connection-specific — so with Entra ID sign-in the
+device registers its bare computer name alone, and an RDP to <computerName>.<suffix> is refused with
+AADSTS293004. Set this to the private DNS zone the VM autoregisters in, and the device registers the
+FQDN as well. Applied without a reboot. Empty leaves the VM without one.''')
+param primaryDnsSuffix string = ''
 
 // =============================================================================
 // Variables
@@ -188,7 +195,35 @@ resource virtualMachine 'Microsoft.Compute/virtualMachines@2025-11-01' = {
   }
 }
 
-// Microsoft Entra ID sign-in over RDP
+// Primary DNS suffix. Written to both registry values: 'NV Domain' is what survives a
+// reboot, 'Domain' is what Windows reports now — so it takes effect without one, which
+// is what lets the Entra ID join below register the FQDN on the first boot.
+resource primaryDnsSuffixCommand 'Microsoft.Compute/virtualMachines/runCommands@2025-11-01' = if (!empty(primaryDnsSuffix)) {
+  parent: virtualMachine
+  name: 'set-primary-dns-suffix'
+  location: location
+  tags: tags
+  properties: {
+    source: {
+      script: '''
+param([string]$Suffix)
+$path = 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters'
+Set-ItemProperty -Path $path -Name 'NV Domain' -Value $Suffix
+Set-ItemProperty -Path $path -Name 'Domain' -Value $Suffix
+'''
+    }
+    parameters: [
+      {
+        name: 'Suffix'
+        value: primaryDnsSuffix
+      }
+    ]
+    treatFailureAsDeploymentFailure: true
+  }
+}
+
+// Microsoft Entra ID sign-in over RDP. After the DNS suffix: the host names the device
+// registers are read once, at join, and an RDP is accepted only to one of them.
 resource entraLoginExtension 'Microsoft.Compute/virtualMachines/extensions@2025-11-01' = if (enableEntraLogin) {
   parent: virtualMachine
   name: 'AADLoginForWindows'
@@ -200,6 +235,9 @@ resource entraLoginExtension 'Microsoft.Compute/virtualMachines/extensions@2025-
     typeHandlerVersion: '2.2'
     autoUpgradeMinorVersion: true
   }
+  dependsOn: [
+    primaryDnsSuffixCommand
+  ]
 }
 
 // Daily auto-shutdown. The resource name is fixed by the platform: the portal only
