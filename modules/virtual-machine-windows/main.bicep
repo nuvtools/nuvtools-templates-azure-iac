@@ -7,7 +7,7 @@
 
 metadata name = 'Virtual Machine Windows'
 metadata description = 'Module for creating a Windows virtual machine with network interface and boot diagnostics following configurable naming conventions.'
-metadata version = '1.1.0'
+metadata version = '1.2.0'
 
 // =============================================================================
 // Parameters
@@ -20,6 +20,13 @@ param name string = ''
 @minLength(2)
 @maxLength(20)
 param workloadName string
+
+@description('''Windows computer name (NetBIOS, at most 15 characters). Empty derives it from
+workloadName and environment, hyphens removed. It is also the host name the VM registers in a
+private DNS zone with autoregistration, and the name an Entra ID RDP sign-in must connect to — so
+set it when people will type it. Immutable: changing it recreates the VM.''')
+@maxLength(15)
+param computerName string = ''
 
 @description('Deployment environment (e.g., dev, uat, hml, staging, prod).')
 param environment string
@@ -141,7 +148,7 @@ resource virtualMachine 'Microsoft.Compute/virtualMachines@2025-11-01' = {
       vmSize: vmSize
     }
     osProfile: {
-      computerName: take(replace('${workloadName}vm${environment}', '-', ''), 15)
+      computerName: empty(computerName) ? take(replace('${workloadName}vm${environment}', '-', ''), 15) : computerName
       adminUsername: adminUsername
       adminPassword: adminPassword
       windowsConfiguration: {

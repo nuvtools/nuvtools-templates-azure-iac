@@ -68,6 +68,7 @@ module vmWindows2 'modules/virtual-machine-windows/main.bicep' = {
 | `environment` | `string` | *(required)* | Deployment environment. Accepts any string (e.g.: `dev`, `uat`, `hml`, `staging`, `prod`). |
 | `location` | `string` | `'brazilsouth'` | Azure region where the resource will be created. |
 | `tags` | `object` | `{ ManagedBy: 'Bicep', Environment: environment }` | Tags to be applied to the resource. |
+| `computerName` | `string` | `''` | Windows computer name (NetBIOS, max 15 characters). Empty derives it from `workloadName` and `environment` without hyphens. It is also the host name registered in a private DNS zone with autoregistration and the name an Entra ID RDP sign-in must connect to. Immutable: changing it recreates the VM. |
 | `vmSize` | `string` | `'Standard_D2s_v3'` | Virtual machine size. |
 | `adminUsername` | `string` | *(required)* | Administrator username for the virtual machine. |
 | `adminPassword` | `string` (secure) | *(required)* | Administrator password for the virtual machine. |
