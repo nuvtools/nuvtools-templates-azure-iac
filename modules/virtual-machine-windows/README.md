@@ -26,6 +26,23 @@ module vmWindows 'modules/virtual-machine-windows/main.bicep' = {
   }
 }
 
+// Jumpbox reached over VPN: Entra ID sign-in instead of the local administrator,
+// and a nightly shutdown so a forgotten session stops costing compute.
+// Pair it with a "Virtual Machine Administrator Login" role assignment.
+module jumpbox 'modules/virtual-machine-windows/main.bicep' = {
+  name: 'deploy-vm-jumpbox'
+  scope: resourceGroup('my-rg')
+  params: {
+    workloadName: 'myapp'
+    environment: 'hub'
+    adminUsername: 'breakglass'
+    adminPassword: adminPassword
+    subnetId: '/subscriptions/.../subnets/vm-snet'
+    enableEntraLogin: true
+    autoShutdownTime: '2300'
+  }
+}
+
 // Usage with fully custom name
 module vmWindows2 'modules/virtual-machine-windows/main.bicep' = {
   name: 'deploy-vm-windows-2'
@@ -63,6 +80,9 @@ module vmWindows2 'modules/virtual-machine-windows/main.bicep' = {
 | `enableAcceleratedNetworking` | `bool` | `true` | Enables accelerated networking on the network interface. |
 | `privateIpAddress` | `string` | `''` | Static private IP address. If empty, dynamic allocation will be used. |
 | `enableBootDiagnostics` | `bool` | `true` | Enables boot diagnostics for the virtual machine. |
+| `enableEntraLogin` | `bool` | `false` | Installs the `AADLoginForWindows` extension so Microsoft Entra ID accounts sign in over RDP. Who may sign in is granted separately with the *Virtual Machine Administrator Login* or *Virtual Machine User Login* role. The VM needs outbound access to Entra ID — on a subnet without default outbound access, a NAT Gateway. |
+| `autoShutdownTime` | `string` | `''` | Daily auto-shutdown time, 24-hour `HHmm` (e.g. `2300`). Empty disables it. Requires the `Microsoft.DevTestLab` resource provider registered in the subscription. |
+| `autoShutdownTimeZone` | `string` | `'E. South America Standard Time'` | Windows time zone ID in which `autoShutdownTime` is read. |
 
 ## Outputs
 

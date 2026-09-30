@@ -1,12 +1,13 @@
 // ---------------------------------------------------------------------------
 // Bicep Module: Virtual Machine Windows
 // Creates a Windows virtual machine with a dedicated network interface,
-// static or dynamic private IP support and boot diagnostics.
+// static or dynamic private IP support and boot diagnostics, and optionally
+// Microsoft Entra ID sign-in and a daily auto-shutdown.
 // ---------------------------------------------------------------------------
 
 metadata name = 'Virtual Machine Windows'
 metadata description = 'Module for creating a Windows virtual machine with network interface and boot diagnostics following configurable naming conventions.'
-metadata version = '1.0.0'
+metadata version = '1.1.0'
 
 // =============================================================================
 // Parameters
@@ -74,6 +75,19 @@ param privateIpAddress string = ''
 
 @description('Enables boot diagnostics for the virtual machine.')
 param enableBootDiagnostics bool = true
+
+@description('''Installs the AADLoginForWindows extension, so Microsoft Entra ID accounts sign in over
+RDP and the local administrator becomes break-glass only. The extension grants nothing by itself:
+who may sign in is decided by the "Virtual Machine Administrator Login" or "Virtual Machine User
+Login" role on the VM or a scope above it. The VM must reach Microsoft Entra ID over the internet —
+on a subnet without default outbound access that means a NAT Gateway, or the extension fails.''')
+param enableEntraLogin bool = false
+
+@description('Daily auto-shutdown time, 24-hour HHmm (e.g. 2300). Empty disables auto-shutdown. Requires the Microsoft.DevTestLab resource provider to be registered in the subscription.')
+param autoShutdownTime string = ''
+
+@description('Windows time zone ID in which autoShutdownTime is read.')
+param autoShutdownTimeZone string = 'E. South America Standard Time'
 
 // =============================================================================
 // Variables
@@ -163,6 +177,41 @@ resource virtualMachine 'Microsoft.Compute/virtualMachines@2025-11-01' = {
       bootDiagnostics: {
         enabled: enableBootDiagnostics
       }
+    }
+  }
+}
+
+// Microsoft Entra ID sign-in over RDP
+resource entraLoginExtension 'Microsoft.Compute/virtualMachines/extensions@2025-11-01' = if (enableEntraLogin) {
+  parent: virtualMachine
+  name: 'AADLoginForWindows'
+  location: location
+  tags: tags
+  properties: {
+    publisher: 'Microsoft.Azure.ActiveDirectory'
+    type: 'AADLoginForWindows'
+    typeHandlerVersion: '2.2'
+    autoUpgradeMinorVersion: true
+  }
+}
+
+// Daily auto-shutdown. The resource name is fixed by the platform: the portal only
+// recognises a schedule named shutdown-computevm-<vm name>.
+#disable-next-line use-recent-api-versions // 2018-09-15 is the latest non-preview version of Microsoft.DevTestLab/schedules
+resource autoShutdownSchedule 'Microsoft.DevTestLab/schedules@2018-09-15' = if (!empty(autoShutdownTime)) {
+  name: 'shutdown-computevm-${vmName}'
+  location: location
+  tags: tags
+  properties: {
+    status: 'Enabled'
+    taskType: 'ComputeVmShutdownTask'
+    dailyRecurrence: {
+      time: autoShutdownTime
+    }
+    timeZoneId: autoShutdownTimeZone
+    targetResourceId: virtualMachine.id
+    notificationSettings: {
+      status: 'Disabled'
     }
   }
 }
