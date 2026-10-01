@@ -43,6 +43,27 @@ module jumpbox 'modules/virtual-machine-windows/main.bicep' = {
   }
 }
 
+// SQL Server marketplace image whose Entra ID users can open the local instance:
+// without sqlSysadminLogins only the local administrator is a sysadmin.
+module sqlJumpbox 'modules/virtual-machine-windows/main.bicep' = {
+  name: 'deploy-vm-sql-jumpbox'
+  scope: resourceGroup('my-rg')
+  params: {
+    workloadName: 'myapp'
+    environment: 'hub'
+    adminUsername: 'breakglass'
+    adminPassword: adminPassword
+    subnetId: '/subscriptions/.../subnets/vm-snet'
+    imagePublisher: 'MicrosoftSQLServer'
+    imageOffer: 'sql2025-ws2025'
+    imageSku: 'entdev-gen2'
+    enableEntraLogin: true
+    sqlSysadminLogins: [
+      'AzureAD\\jane@contoso.com'
+    ]
+  }
+}
+
 // Usage with fully custom name
 module vmWindows2 'modules/virtual-machine-windows/main.bicep' = {
   name: 'deploy-vm-windows-2'
@@ -85,6 +106,7 @@ module vmWindows2 'modules/virtual-machine-windows/main.bicep' = {
 | `autoShutdownTime` | `string` | `''` | Daily auto-shutdown time, 24-hour `HHmm` (e.g. `2300`). Empty disables it. Requires the `Microsoft.DevTestLab` resource provider registered in the subscription. |
 | `autoShutdownTimeZone` | `string` | `'E. South America Standard Time'` | Windows time zone ID in which `autoShutdownTime` is read. |
 | `primaryDnsSuffix` | `string` | `''` | Primary DNS suffix (e.g. `contoso.internal`), set by a run command before the Entra ID extension, without a reboot. An Azure VM has none, so with `enableEntraLogin` the device registers only its bare computer name and an RDP to `<computerName>.<suffix>` is refused (`AADSTS293004`). Set it to the private DNS zone the VM autoregisters in and the device registers the FQDN too. |
+| `sqlSysadminLogins` | `array` | `[]` | Windows accounts or groups made sysadmin on the SQL Server default instance of a SQL Server marketplace image (e.g. `AzureAD\jane@contoso.com`, `BUILTIN\Administrators`). Such an image comes up in Windows authentication mode with the local administrator as its only usable sysadmin, so an account that signs in with Entra ID is refused by SQL Server. An Entra ID account is written `AzureAD\<UPN>` and needs `enableEntraLogin`; it does not have to have signed in before. `BUILTIN\Administrators` covers whoever may sign in as administrator, but only from an elevated client. Applied by a run command that restarts SQL Server in single-user mode — it drops open connections, once, and again only when the list changes. Names cannot contain a comma. |
 
 ## Outputs
 

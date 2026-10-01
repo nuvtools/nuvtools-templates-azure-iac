@@ -2,12 +2,13 @@
 // Bicep Module: Virtual Machine Windows
 // Creates a Windows virtual machine with a dedicated network interface,
 // static or dynamic private IP support and boot diagnostics, and optionally
-// Microsoft Entra ID sign-in and a daily auto-shutdown.
+// Microsoft Entra ID sign-in, a daily auto-shutdown and, on a SQL Server image,
+// sysadmin logins.
 // ---------------------------------------------------------------------------
 
 metadata name = 'Virtual Machine Windows'
 metadata description = 'Module for creating a Windows virtual machine with network interface and boot diagnostics following configurable naming conventions.'
-metadata version = '1.3.0'
+metadata version = '1.4.0'
 
 // =============================================================================
 // Parameters
@@ -102,6 +103,17 @@ device registers its bare computer name alone, and an RDP to <computerName>.<suf
 AADSTS293004. Set this to the private DNS zone the VM autoregisters in, and the device registers the
 FQDN as well. Applied without a reboot. Empty leaves the VM without one.''')
 param primaryDnsSuffix string = ''
+
+@description('''Windows accounts or groups made sysadmin on the SQL Server default instance of a SQL
+Server marketplace image (e.g. AzureAD\jane@contoso.com, BUILTIN\Administrators). Such an image
+comes up in Windows authentication mode with the local administrator as its only usable sysadmin, so
+an account that signs in with Entra ID is refused by SQL Server although it administers Windows.
+An Entra ID account is written AzureAD\<UPN> and needs enableEntraLogin; it does not have to have
+signed in before. BUILTIN\Administrators covers whoever may sign in as administrator, but only from
+an elevated client ("Run as administrator"): UAC strips the group from a normal token. Applied by a
+run command that restarts SQL Server in single-user mode, so it drops open connections — once, and
+again only when this list changes. Names cannot contain a comma. Empty leaves SQL Server untouched.''')
+param sqlSysadminLogins array = []
 
 // =============================================================================
 // Variables
@@ -237,6 +249,79 @@ resource entraLoginExtension 'Microsoft.Compute/virtualMachines/extensions@2025-
   }
   dependsOn: [
     primaryDnsSuffixCommand
+  ]
+}
+
+// SQL Server sysadmin logins. Nothing on the VM can create a login the ordinary way — not
+// even SYSTEM, which the run command runs as, is a sysadmin on the marketplace image — so
+// the instance is restarted in single-user mode, where a local administrator is one.
+// -mSQLCMD reserves the only connection for sqlcmd; the telemetry service would take it.
+// After the Entra ID join: an AzureAD\<UPN> name resolves only on a joined device.
+resource sqlSysadminLoginsCommand 'Microsoft.Compute/virtualMachines/runCommands@2025-11-01' = if (!empty(sqlSysadminLogins)) {
+  parent: virtualMachine
+  name: 'grant-sql-sysadmin'
+  location: location
+  tags: tags
+  properties: {
+    source: {
+      script: '''
+param([string[]]$Logins)
+$ErrorActionPreference = 'Stop'
+$service = 'MSSQLSERVER'
+
+if (-not (Get-Service $service -ErrorAction SilentlyContinue)) {
+    throw "No SQL Server default instance on this VM; sqlSysadminLogins needs a SQL Server image."
+}
+
+# Resolved before SQL Server is touched, so a mistyped name fails with the instance still up.
+# The login is created under the name Windows reports for the SID: an Entra ID account is
+# given as AzureAD\<UPN> and reported as AzureAD\<DisplayName>.
+$accounts = foreach ($login in ($Logins -split ',').Trim() | Where-Object { $_ }) {
+    $sid = [System.Security.Principal.NTAccount]::new($login).Translate([System.Security.Principal.SecurityIdentifier])
+    $sid.Translate([System.Security.Principal.NTAccount]).Value
+}
+
+$statements = foreach ($account in $accounts) {
+    $name = $account.Replace(']', ']]')
+    $literal = $account.Replace("'", "''")
+    "IF SUSER_ID(N'$literal') IS NULL CREATE LOGIN [$name] FROM WINDOWS; ALTER SERVER ROLE [sysadmin] ADD MEMBER [$name];"
+}
+$sql = $statements -join ' '
+
+$agentWasRunning = (Get-Service SQLSERVERAGENT -ErrorAction SilentlyContinue).Status -eq 'Running'
+Stop-Service $service -Force
+try {
+    net start $service /mSQLCMD | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "SQL Server did not start in single-user mode (net start exit code $LASTEXITCODE)." }
+
+    # The service reports started a few seconds before the instance accepts a connection.
+    for ($attempt = 1; ; $attempt++) {
+        $output = sqlcmd -S . -E -C -b -Q $sql
+        if ($LASTEXITCODE -eq 0) { break }
+        if ($attempt -ge 12) { throw "sqlcmd failed: $output" }
+        Start-Sleep -Seconds 5
+    }
+}
+finally {
+    Stop-Service $service -Force
+    Start-Service $service
+    if ($agentWasRunning) { Start-Service SQLSERVERAGENT }
+}
+
+"sysadmin granted to: $($accounts -join ', ')"
+'''
+    }
+    parameters: [
+      {
+        name: 'Logins'
+        value: join(sqlSysadminLogins, ',')
+      }
+    ]
+    timeoutInSeconds: 600
+    treatFailureAsDeploymentFailure: true
+  }
+  dependsOn: [
+    entraLoginExtension
   ]
 }
 
