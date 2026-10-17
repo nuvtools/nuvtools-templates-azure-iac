@@ -75,13 +75,16 @@ keys: [
 The private half never leaves the vault: an application is granted **Key Vault Crypto User** and asks
 the vault to sign, rather than being handed material it would then have to protect.
 
-ARM creates a key it does not find and leaves an existing one alone; it never rotates one. Rotation
-is therefore a vault operation and deliberately stays outside the template — a redeploy must not
-silently invalidate every signature an application has already issued.
+ARM creates a key it does not find and never makes a new version of one it finds, so a redeploy
+cannot rotate a key and invalidate the signatures already issued with it. It is not a silent no-op:
+when a declared parameter differs from the key's **current version**, the deploy fails with
+`KeyCreationParametersDidNotMatchExistingKey`. Declare only what a key keeps for its whole life —
+`kty`, `keySize`, `curveName`, `keyOps` — and never an expiry: a rotated key's current version has a
+new one every time.
 
-A key can also be created with a **rotation policy**, so the vault makes new versions on its own,
-and with an expiry for its first version, so that version stops being used like the ones rotation
-creates. A token signing key that rotates every 90 days and keeps each version for 180:
+A key can also be created with a **rotation policy**, so the vault makes new versions on its own, each
+with the expiry the policy gives it. A token signing key that rotates every 90 days and keeps each
+version for 180 (the action types in the casing the vault stores):
 
 ```bicep
 keys: [
@@ -90,17 +93,17 @@ keys: [
     kty: 'RSA'
     keySize: 2048
     keyOps: ['sign', 'verify']
-    expiresAfter: 'P180D'
     rotationPolicy: {
-      lifetimeActions: [ { trigger: { timeAfterCreate: 'P90D' }, action: { type: 'rotate' } } ]
+      lifetimeActions: [ { trigger: { timeAfterCreate: 'P90D' }, action: { type: 'Rotate' } } ]
       attributes: { expiryTime: 'P180D' }
     }
   }
 ]
 ```
 
-Both take effect only when the key is created. On an existing key, change the policy in the vault
-(`az keyvault key rotation-policy update`).
+The first version has no expiry: disable it in the vault once the first rotation has happened. To
+change the policy of an existing key, change it in the vault (`az keyvault key rotation-policy
+update`) and here alike.
 
 ## Parameters
 
@@ -125,8 +128,7 @@ Both take effect only when the key is created. On an existing key, change the po
 | `diagnosticMetricsEnabled` | `bool` | `true` | Also sends `AllMetrics` when `enableDiagnostics` is `true`. |
 | `secretsUserPrincipalIds` | `array` | `[]` | Principal IDs that receive the Key Vault Secrets User role on the vault. |
 | `certificateUserPrincipalIds` | `array` | `[]` | Principal IDs that receive the Key Vault Certificate User role on the vault. |
-| `keys` | `array` | `[]` | Keys created in the vault: `{ name, kty, curveName?, keySize?, keyOps?, expiresAfter?, rotationPolicy? }`. See **Keys** below. |
-| `keyCreationTime` | `string` | `utcNow()` | Time a new key's `expiresAfter` counts from. Leave the default. |
+| `keys` | `array` | `[]` | Keys created in the vault: `{ name, kty, curveName?, keySize?, keyOps?, rotationPolicy? }`. See **Keys** below. |
 
 ## Outputs
 

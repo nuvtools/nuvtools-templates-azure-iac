@@ -94,26 +94,23 @@ param certificateUserPrincipalIds array = []
 
 @description('''Keys to create in the vault, as objects:
   { name: string, kty: 'EC' | 'RSA' | 'EC-HSM' | 'RSA-HSM', curveName: string?, keySize: int?, keyOps: array?,
-    expiresAfter: string?, rotationPolicy: object? }
+    rotationPolicy: object? }
 
-expiresAfter is an ISO 8601 duration (e.g. 'P180D') giving the first version an expiry, the way the
-versions a rotation policy creates get one. rotationPolicy takes the ARM shape:
-  { lifetimeActions: [ { trigger: { timeAfterCreate: 'P90D' }, action: { type: 'rotate' } } ],
+rotationPolicy takes the ARM shape, with the casing the vault stores:
+  { lifetimeActions: [ { trigger: { timeAfterCreate: 'P90D' }, action: { type: 'Rotate' } } ],
     attributes: { expiryTime: 'P180D' } }
 
 Declared here rather than created by hand so the key an application signs with is part of the same
 deployment as the identity allowed to use it — the two are useless apart, and a key created out of
 band is one nothing records the existence of.
 
-ARM creates a key it does not find and leaves an existing one alone; it never rotates one. Rotation
-is therefore a vault operation and stays outside the template, which is the right place for it: a
-redeploy must not silently invalidate every signature an application has already issued. The same
-rule covers expiresAfter and rotationPolicy: they take effect when the key is created, and changing
-either on an existing key is done in the vault.''')
+ARM creates a key it does not find and never creates a new version of one it finds, so a redeploy
+cannot rotate a key and invalidate the signatures already issued with it. It is not a silent no-op,
+though: when a declared parameter differs from the key's current version, the deploy fails with
+KeyCreationParametersDidNotMatchExistingKey. Declare only what a key keeps for its whole life — kty,
+keySize, curveName, keyOps — and never an expiry: a rotated key's current version has a different
+one every time. Changing a declared parameter of an existing key is done in the vault, then here.''')
 param keys array = []
-
-@description('Time the expiresAfter of a new key counts from. Leave the default; it exists because utcNow() is only allowed as a parameter default.')
-param keyCreationTime string = utcNow()
 
 // =============================================================================
 // Variables
@@ -212,7 +209,6 @@ resource vaultKeys 'Microsoft.KeyVault/vaults/keys@2024-11-01' = [
       keyOps: key.?keyOps
       attributes: {
         enabled: true
-        exp: empty(key.?expiresAfter) ? null : dateTimeToEpoch(dateTimeAdd(keyCreationTime, key.expiresAfter))
       }
       rotationPolicy: key.?rotationPolicy
     }
