@@ -79,6 +79,29 @@ ARM creates a key it does not find and leaves an existing one alone; it never ro
 is therefore a vault operation and deliberately stays outside the template — a redeploy must not
 silently invalidate every signature an application has already issued.
 
+A key can also be created with a **rotation policy**, so the vault makes new versions on its own,
+and with an expiry for its first version, so that version stops being used like the ones rotation
+creates. A token signing key that rotates every 90 days and keeps each version for 180:
+
+```bicep
+keys: [
+  {
+    name: 'token-signing'
+    kty: 'RSA'
+    keySize: 2048
+    keyOps: ['sign', 'verify']
+    expiresAfter: 'P180D'
+    rotationPolicy: {
+      lifetimeActions: [ { trigger: { timeAfterCreate: 'P90D' }, action: { type: 'rotate' } } ]
+      attributes: { expiryTime: 'P180D' }
+    }
+  }
+]
+```
+
+Both take effect only when the key is created. On an existing key, change the policy in the vault
+(`az keyvault key rotation-policy update`).
+
 ## Parameters
 
 | Parameter | Type | Default | Description |
@@ -98,9 +121,12 @@ silently invalidate every signature an application has already issued.
 | `allowedIpRanges` | `array` | `[]` | List of allowed IP ranges for Key Vault access (CIDR format or single IP). |
 | `enableDiagnostics` | `bool` | `false` | Enables sending diagnostics to Log Analytics. |
 | `logAnalyticsWorkspaceId` | `string` | `''` | Log Analytics workspace ID for diagnostics. Required when `enableDiagnostics` is `true`. |
+| `diagnosticLogCategoryGroups` | `array` | `['audit', 'allLogs']` | Log category groups sent when `enableDiagnostics` is `true`. `['audit']` sends the audit trail only. |
+| `diagnosticMetricsEnabled` | `bool` | `true` | Also sends `AllMetrics` when `enableDiagnostics` is `true`. |
 | `secretsUserPrincipalIds` | `array` | `[]` | Principal IDs that receive the Key Vault Secrets User role on the vault. |
 | `certificateUserPrincipalIds` | `array` | `[]` | Principal IDs that receive the Key Vault Certificate User role on the vault. |
-| `keys` | `array` | `[]` | Keys created in the vault: `{ name, kty, curveName?, keySize?, keyOps? }`. See **Keys** below. |
+| `keys` | `array` | `[]` | Keys created in the vault: `{ name, kty, curveName?, keySize?, keyOps?, expiresAfter?, rotationPolicy? }`. See **Keys** below. |
+| `keyCreationTime` | `string` | `utcNow()` | Time a new key's `expiresAfter` counts from. Leave the default. |
 
 ## Outputs
 
