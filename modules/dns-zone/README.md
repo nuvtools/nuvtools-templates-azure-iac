@@ -56,7 +56,34 @@ was left out (mail, verification records) stops resolving.
 | `srvRecords` | `array` | `[]` | `{ name, ttl?, records: [{ priority, weight, port, target }] }` |
 | `caaRecords` | `array` | `[]` | `{ name, ttl?, records: [{ flags, tag, value }] }` |
 
+| `enableDnssec` | `bool` | `false` | Signs the zone with DNSSEC (`dnssecConfigs/default`). |
+
 `ttl` defaults to 3600 seconds. Use `@` for the apex.
+
+## DNSSEC
+
+`enableDnssec` signs the zone (ECDSA P-256, algorithm 13). Azure creates the keys and rolls the
+zone signing key on its own. The resource exists only in a preview API version
+(`2023-07-01-preview`).
+
+Signing alone protects nothing: validation starts when the parent zone carries a DS record for
+the domain, and for a registered domain that means entering it at the registrar. Read it after the
+deployment:
+
+```bash
+az network dns dnssec-config show -g <rg> -z <zone> \
+  --query "signingKeys[].delegationSignerInfo[].record" -o tsv
+```
+
+Order matters in both directions, because a DS that does not match what the name servers serve
+takes the whole domain offline for validating resolvers:
+
+- **Turning it on:** deploy with `enableDnssec`, then publish the DS. If the domain has just been
+  delegated to Azure, wait until no resolver can still hold the previous name servers (the parent
+  zone's NS TTL, 48 hours for `.com`): the old provider's copy is not signed with these keys.
+- **Turning it off:** remove the DS at the registrar, wait for its TTL (a day for `.com`), then
+  delete the configuration with `az network dns dnssec-config delete`. Setting `enableDnssec` back
+  to `false` does not unsign the zone; the template never deletes the configuration.
 
 ## Outputs
 

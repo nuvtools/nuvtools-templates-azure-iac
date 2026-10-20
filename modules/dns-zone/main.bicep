@@ -7,8 +7,8 @@
 // ---------------------------------------------------------------------------
 
 metadata name = 'Public DNS Zone'
-metadata description = 'Module for creating a public Azure DNS zone with A, AAAA, CNAME, MX, TXT, SRV and CAA record sets, including alias records.'
-metadata version = '1.0.0'
+metadata description = 'Module for creating a public Azure DNS zone with A, AAAA, CNAME, MX, TXT, SRV and CAA record sets, including alias records, optionally signed with DNSSEC.'
+metadata version = '1.1.0'
 
 // =============================================================================
 // Parameters
@@ -52,6 +52,12 @@ param srvRecords array = []
 
 @description('CAA record sets. Each: name, ttl (optional), records (array of { flags, tag, value }).')
 param caaRecords array = []
+
+@description('''Signs the zone with DNSSEC. Azure manages the keys and rolls the zone signing key itself; the
+chain of trust only starts once the DS record Azure generates is published at the registrar. Turning
+this off again does not unsign the zone: remove the DS at the registrar first, then delete the
+configuration by hand (see the README).''')
+param enableDnssec bool = false
 
 // =============================================================================
 // Variables
@@ -143,6 +149,12 @@ resource dnsCaaRecords 'Microsoft.Network/dnsZones/CAA@2018-05-01' = [for record
     caaRecords: record.records
   }
 }]
+
+// The only API version that has this resource is a preview one.
+resource dnssec 'Microsoft.Network/dnsZones/dnssecConfigs@2023-07-01-preview' = if (enableDnssec) {
+  name: 'default'
+  parent: dnsZone
+}
 
 // =============================================================================
 // Outputs
