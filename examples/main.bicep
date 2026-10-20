@@ -203,6 +203,15 @@ param vmAdminUsername string = 'azureadmin'
 @secure()
 param vmAdminPassword string = ''
 
+@description('Enables a Static Web App (content uploaded by a pipeline with the deployment token).')
+param enableStaticWebApp bool = false
+
+@description('Region of the Static Web App, which exists only in westus2, centralus, eastus2, westeurope and eastasia.')
+param staticWebAppLocation string = 'eastus2'
+
+@description('Public DNS zone to create (e.g. \'example.com\'). Empty skips it. With the Static Web App enabled, the apex gets an alias record to it and www a CNAME.')
+param publicDnsZoneName string = ''
+
 // =============================================================================
 // Integration Parameters
 // =============================================================================
@@ -559,6 +568,36 @@ module windowsVm '../modules/virtual-machine-windows/main.bicep' = if (enableCom
     adminPassword: vmAdminPassword
     subnetId: subnet[0]!.outputs.id
   }
+}
+
+module staticWebApp '../modules/static-web-app/main.bicep' = if (enableCompute && enableStaticWebApp) {
+  name: 'deploy-static-web-app'
+  scope: resourceGroup(resourceGroupName)
+  params: {
+    workloadName: workloadName
+    environment: environment
+    location: staticWebAppLocation
+    tags: tags
+  }
+  dependsOn: [
+    rg
+  ]
+}
+
+module publicDnsZone '../modules/dns-zone/main.bicep' = if (enableCompute && publicDnsZoneName != '') {
+  name: 'deploy-dns-zone'
+  scope: resourceGroup(resourceGroupName)
+  params: {
+    workloadName: workloadName
+    environment: environment
+    tags: tags
+    zoneName: publicDnsZoneName
+    aRecords: enableStaticWebApp ? [{ name: '@', targetResourceId: staticWebApp!.outputs.id }] : []
+    cnameRecords: enableStaticWebApp ? [{ name: 'www', cname: staticWebApp!.outputs.defaultHostname }] : []
+  }
+  dependsOn: [
+    rg
+  ]
 }
 
 // =============================================================================

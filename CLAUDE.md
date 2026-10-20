@@ -46,7 +46,7 @@ Deploys at **subscription scope** and composes all 27 modules across 8 dependenc
 | 2 | `enableMonitoring` | Log Analytics, App Insights, Storage Account |
 | 3 | `enableSecurity` | Key Vault, Certificates |
 | 4 | `enableData` | SQL Server, SQL Database, Azure Managed Redis, PostgreSQL Flexible Server, PostgreSQL Database |
-| 5 | `enableCompute` | ACR, AKS, Node Pool, App Gateway, Bastion, VM |
+| 5 | `enableCompute` | ACR, AKS, Node Pool, App Gateway, Bastion, VM, Static Web App, public DNS zone |
 | 6 | `enableMessaging` | API Management, Event Hub, Service Bus, SignalR |
 | 7 | `enableGovernance` | Role Assignments, Policies |
 

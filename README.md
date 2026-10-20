@@ -16,6 +16,7 @@ nuvtools-templates-azure-iac/
 │   ├── app-insights/                 # Application Insights
 │   ├── bastion/                      # Azure Bastion
 │   ├── container-registry/           # Azure Container Registry
+│   ├── dns-zone/                     # Public DNS zone + record sets (incl. alias)
 │   ├── event-hub/                    # Event Hub Namespace + Hubs
 │   ├── key-vault/                    # Azure Key Vault
 │   ├── key-vault-certificate/        # Key Vault Certificate
@@ -39,6 +40,7 @@ nuvtools-templates-azure-iac/
 │   ├── signalr/                      # Azure SignalR Service
 │   ├── sql-database/                 # SQL Database
 │   ├── sql-server/                   # SQL Server + auditing
+│   ├── static-web-app/               # Static Web App (pipeline-uploaded content)
 │   ├── storage-account/              # Storage Account
 │   ├── subnet/                       # Subnet
 │   ├── virtual-machine-windows/      # Windows VM + NIC
@@ -118,6 +120,7 @@ All resources follow the pattern: **`{workloadName}-{abbreviation}-{environment}
 | Redis Cache (deprecated) | `redis` | `{workloadName}-redis-{env}` | `myapp-redis-dev` |
 | Service Bus | `sbns` | `{workloadName}-sbns-{env}` | `myapp-sbns-dev` |
 | SignalR | `sigr` | `{workloadName}-sigr-{env}` | `myapp-sigr-dev` |
+| Static Web App | `stapp` | `{workloadName}-stapp-{env}` | `myapp-stapp-dev` |
 | Virtual Machine | `vm` | `{workloadName}-vm-{env}` | `myapp-vm-dev` |
 | Storage Account | `st` | `{workloadName}st{env}` | `myappstdev` |
 | Container Registry | `cr` | `{workloadName}cr{env}` | `myappcrdev` |
@@ -137,7 +140,7 @@ The orchestrator organizes the modules into 8 layers:
 | 2 | Log Analytics, App Insights, Storage Account | `enableMonitoring` |
 | 3 | Key Vault, Certificates | `enableSecurity` |
 | 4 | SQL Server, SQL Database, Azure Managed Redis, PostgreSQL | `enableData` |
-| 5 | ACR, AKS, Node Pool, App Gateway, Bastion, VM | `enableCompute` |
+| 5 | ACR, AKS, Node Pool, App Gateway, Bastion, VM, Static Web App, public DNS zone | `enableCompute` |
 | 6 | API Management, Event Hub, Service Bus, SignalR | `enableMessaging` |
 | 7 | Role Assignments, Policies | `enableGovernance` |
 
