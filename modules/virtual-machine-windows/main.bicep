@@ -81,6 +81,15 @@ param enableAcceleratedNetworking bool = true
 @description('Static private IP address. If empty, dynamic allocation will be used.')
 param privateIpAddress string = ''
 
+@description('''Resource ID of a Standard public IP to attach to the network interface (see the
+public-ip module). Empty leaves the VM with a private address only. A Standard public IP admits no
+inbound traffic until an NSG allows it, so pair it with networkSecurityGroupId. It also gives the VM
+outbound internet access on a subnet without default outbound access.''')
+param publicIpAddressId string = ''
+
+@description('Resource ID of a network security group to associate with the network interface (see the nsg module). Empty associates none.')
+param networkSecurityGroupId string = ''
+
 @description('Enables boot diagnostics for the virtual machine.')
 param enableBootDiagnostics bool = true
 
@@ -88,7 +97,8 @@ param enableBootDiagnostics bool = true
 RDP and the local administrator becomes break-glass only. The extension grants nothing by itself:
 who may sign in is decided by the "Virtual Machine Administrator Login" or "Virtual Machine User
 Login" role on the VM or a scope above it. The VM must reach Microsoft Entra ID over the internet —
-on a subnet without default outbound access that means a NAT Gateway, or the extension fails.''')
+on a subnet without default outbound access that means a public IP (publicIpAddressId) or a NAT
+Gateway, or the extension fails.''')
 param enableEntraLogin bool = false
 
 @description('Daily auto-shutdown time, 24-hour HHmm (e.g. 2300). Empty disables auto-shutdown. Requires the Microsoft.DevTestLab resource provider to be registered in the subscription.')
@@ -139,6 +149,9 @@ resource networkInterface 'Microsoft.Network/networkInterfaces@2025-07-01' = {
   tags: tags
   properties: {
     enableAcceleratedNetworking: enableAcceleratedNetworking
+    networkSecurityGroup: empty(networkSecurityGroupId) ? null : {
+      id: networkSecurityGroupId
+    }
     ipConfigurations: [
       {
         name: 'ipconfig1'
@@ -148,6 +161,9 @@ resource networkInterface 'Microsoft.Network/networkInterfaces@2025-07-01' = {
           }
           privateIPAllocationMethod: useStaticIp ? 'Static' : 'Dynamic'
           privateIPAddress: useStaticIp ? privateIpAddress : null
+          publicIPAddress: empty(publicIpAddressId) ? null : {
+            id: publicIpAddressId
+          }
         }
       }
     ]

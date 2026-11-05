@@ -103,7 +103,7 @@ module sqlServer 'modules/sql-server/main.bicep' = {
 | `firewallRules` | `array` | `[]` | Additional firewall rules. Array of objects with `name`, `startIpAddress` and `endIpAddress`. Ignored while `publicNetworkAccess` is `Disabled` — Azure rejects the write rather than storing inert rules. |
 | `enableAuditing` | `bool` | `true` | Enables the SQL Server auditing policy. With `logAnalyticsWorkspaceId` set, the trail is also routed to that workspace and becomes queryable with KQL. |
 | `storageAccountId` | `string` | `''` | Storage account receiving the audit log. Optional: auditing to Log Analytics alone is a complete configuration. |
-| `enableAdvancedThreatProtection` | `bool` | `true` | Enables Advanced Threat Protection. |
+| `enableAdvancedThreatProtection` | `bool` | `true` | Enables Advanced Threat Protection (Microsoft Defender for SQL, billed per server). The policy is always written, so `false` turns off a server that had it on. |
 | `enableVulnerabilityAssessment` | `bool` | `false` | Enables Vulnerability Assessment. |
 | `vulnerabilityAssessmentStorageAccountId` | `string` | `''` | Storage account ID to store vulnerability assessment results. Required when `enableVulnerabilityAssessment` is `true`. |
 | `enableDiagnostics` | `bool` | `false` | Enables sending diagnostics to Log Analytics. |

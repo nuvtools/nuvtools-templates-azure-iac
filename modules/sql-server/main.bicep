@@ -86,7 +86,8 @@ param enableAuditing bool = true
 @description('Storage account ID used to store audit logs. Required when enableAuditing is true.')
 param storageAccountId string = ''
 
-@description('Enables Advanced Threat Protection.')
+@description('''Enables Advanced Threat Protection (Microsoft Defender for SQL, billed per server).
+The policy is always written, so false actively turns off a server that had it on: deployments are incremental, and skipping the resource would leave it enabled.''')
 param enableAdvancedThreatProtection bool = true
 
 @description('Enables Vulnerability Assessment.')
@@ -265,12 +266,13 @@ resource auditDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-
   ]
 }
 
-// Security alert policy (Advanced Threat Protection) - conditionally enabled
-resource securityAlertPolicy 'Microsoft.Sql/servers/securityAlertPolicies@2025-01-01' = if (enableAdvancedThreatProtection) {
+// Security alert policy (Advanced Threat Protection). Always written so that
+// turning the flag off disables a server that was enabled before.
+resource securityAlertPolicy 'Microsoft.Sql/servers/securityAlertPolicies@2025-01-01' = {
   name: 'Default'
   parent: sqlServer
   properties: {
-    state: 'Enabled'
+    state: enableAdvancedThreatProtection ? 'Enabled' : 'Disabled'
   }
 }
 

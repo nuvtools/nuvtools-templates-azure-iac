@@ -101,6 +101,8 @@ module vmWindows2 'modules/virtual-machine-windows/main.bicep' = {
 | `osDiskType` | `string` | `'Premium_LRS'` | Operating system disk type. Allowed values: `Premium_LRS`, `StandardSSD_LRS`, `Standard_LRS`. |
 | `enableAcceleratedNetworking` | `bool` | `true` | Enables accelerated networking on the network interface. |
 | `privateIpAddress` | `string` | `''` | Static private IP address. If empty, dynamic allocation will be used. |
+| `publicIpAddressId` | `string` | `''` | Resource ID of a Standard public IP attached to the NIC. Admits no inbound traffic until an NSG allows it; also gives outbound internet access on a subnet without default outbound access. |
+| `networkSecurityGroupId` | `string` | `''` | Resource ID of an NSG associated with the NIC. |
 | `enableBootDiagnostics` | `bool` | `true` | Enables boot diagnostics for the virtual machine. |
 | `enableEntraLogin` | `bool` | `false` | Installs the `AADLoginForWindows` extension so Microsoft Entra ID accounts sign in over RDP. Who may sign in is granted separately with the *Virtual Machine Administrator Login* or *Virtual Machine User Login* role. The VM needs outbound access to Entra ID — on a subnet without default outbound access, a NAT Gateway. |
 | `autoShutdownTime` | `string` | `''` | Daily auto-shutdown time, 24-hour `HHmm` (e.g. `2300`). Empty disables it. Requires the `Microsoft.DevTestLab` resource provider registered in the subscription. |
